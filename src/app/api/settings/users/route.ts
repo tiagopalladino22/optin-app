@@ -122,3 +122,38 @@ export async function POST(request: NextRequest) {
     { status: 201 }
   )
 }
+
+export async function DELETE(request: NextRequest) {
+  const session = await getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  if (session.role !== 'admin') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const body = await request.json()
+  const { id } = body
+
+  if (!id) {
+    return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+  }
+
+  // Prevent deleting yourself
+  if (id === session.id) {
+    return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 })
+  }
+
+  const supabase = await createServiceRoleClient()
+
+  // Delete profile first (cascade from auth.users won't work in reverse)
+  await supabase.from('user_profiles').delete().eq('id', id)
+
+  // Delete auth user
+  const { error } = await supabase.auth.admin.deleteUser(id)
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ success: true })
+}

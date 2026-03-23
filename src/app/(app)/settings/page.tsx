@@ -11,6 +11,8 @@ interface Client {
   slug: string
   owner_email: string
   created_at: string
+  assigned_lists?: number
+  user_count?: number
 }
 
 interface User {
@@ -166,15 +168,17 @@ function ClientsTab() {
             <thead>
               <tr className="bg-offwhite text-text-light uppercase text-xs tracking-wider border-b border-border-custom">
                 <th className="text-left px-5 py-3 font-medium">Name</th>
-                <th className="text-left px-5 py-3 font-medium">Slug</th>
                 <th className="text-left px-5 py-3 font-medium">Owner Email</th>
+                <th className="text-center px-5 py-3 font-medium">Lists</th>
+                <th className="text-center px-5 py-3 font-medium">Users</th>
                 <th className="text-left px-5 py-3 font-medium">Created</th>
+                <th className="text-right px-5 py-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-5 py-4">
+                  <td colSpan={6} className="px-5 py-4">
                     <div className="space-y-3">
                       <div className="skeleton h-4 w-full" />
                       <div className="skeleton h-4 w-3/4" />
@@ -185,7 +189,7 @@ function ClientsTab() {
               ) : clients.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={6}
                     className="px-5 py-8 text-center text-text-light text-sm"
                   >
                     No clients yet
@@ -197,17 +201,51 @@ function ClientsTab() {
                     key={client.id}
                     className="hover:bg-offwhite/50 border-b border-border-custom last:border-0"
                   >
-                    <td className="px-5 py-3 text-sm text-navy font-medium">
-                      {client.name}
-                    </td>
-                    <td className="px-5 py-3 text-sm text-text-mid">
-                      {client.slug}
+                    <td className="px-5 py-3">
+                      <p className="text-sm text-navy font-medium">{client.name}</p>
+                      <p className="text-xs text-text-light">{client.slug}</p>
                     </td>
                     <td className="px-5 py-3 text-sm text-text-mid">
                       {client.owner_email}
                     </td>
+                    <td className="px-5 py-3 text-center">
+                      <span className={`inline-block rounded-lg px-2 py-0.5 text-xs font-medium ${
+                        (client.assigned_lists || 0) > 0
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : 'bg-red-50 text-red-600'
+                      }`}>
+                        {client.assigned_lists || 0}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-center">
+                      <span className="inline-block rounded-lg px-2 py-0.5 text-xs font-medium bg-accent-wash text-accent">
+                        {client.user_count || 0}
+                      </span>
+                    </td>
                     <td className="px-5 py-3 text-sm text-text-light">
                       {new Date(client.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`Delete client "${client.name}"? This will also remove all their resource assignments.`)) return
+                          try {
+                            const res = await fetch('/api/settings/clients', {
+                              method: 'DELETE',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ id: client.id }),
+                            })
+                            if (!res.ok) { const json = await res.json(); throw new Error(json.error) }
+                            setSuccess('Client deleted')
+                            fetchClients()
+                          } catch (err: unknown) {
+                            setError(err instanceof Error ? err.message : 'Failed to delete')
+                          }
+                        }}
+                        className="text-xs text-red-500 hover:text-red-700 font-medium"
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -388,12 +426,13 @@ function UsersTab() {
                 <th className="text-left px-5 py-3 font-medium">Role</th>
                 <th className="text-left px-5 py-3 font-medium">Client</th>
                 <th className="text-left px-5 py-3 font-medium">Created</th>
+                <th className="text-right px-5 py-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-5 py-4">
+                  <td colSpan={5} className="px-5 py-4">
                     <div className="space-y-3">
                       <div className="skeleton h-4 w-full" />
                       <div className="skeleton h-4 w-3/4" />
@@ -404,7 +443,7 @@ function UsersTab() {
               ) : users.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     className="px-5 py-8 text-center text-text-light text-sm"
                   >
                     No users yet
@@ -435,6 +474,29 @@ function UsersTab() {
                     </td>
                     <td className="px-5 py-3 text-sm text-text-light">
                       {new Date(user.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`Delete user "${user.email}"?`)) return
+                          try {
+                            const res = await fetch('/api/settings/users', {
+                              method: 'DELETE',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ id: user.id }),
+                            })
+                            const json = await res.json()
+                            if (!res.ok) throw new Error(json.error)
+                            setSuccess('User deleted')
+                            fetchData()
+                          } catch (err: unknown) {
+                            setError(err instanceof Error ? err.message : 'Failed to delete')
+                          }
+                        }}
+                        className="text-xs text-red-500 hover:text-red-700 font-medium"
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))

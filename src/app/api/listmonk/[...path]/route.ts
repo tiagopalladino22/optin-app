@@ -67,7 +67,8 @@ function invalidateCache(resourceSegment: string) {
 }
 
 async function getClientResources(clientId: string, resourceType?: string) {
-  const supabase = await createServerSupabaseClient()
+  // Use service role client to bypass RLS — the proxy already verified auth
+  const supabase = await createServiceRoleClient()
   let query = supabase
     .from('client_resources')
     .select('listmonk_id, resource_type')

@@ -12,7 +12,7 @@ export async function GET() {
   }
 
   const supabase = await createServiceRoleClient()
-  const { data, error } = await supabase
+  const { data: clients, error } = await supabase
     .from('clients')
     .select('*')
     .order('created_at', { ascending: false })
@@ -21,7 +21,35 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ data })
+  // Enrich with assigned resources count and user count
+  const { data: resources } = await supabase
+    .from('client_resources')
+    .select('client_id, resource_type')
+
+  const { data: profiles } = await supabase
+    .from('user_profiles')
+    .select('client_id')
+    .eq('role', 'client')
+
+  const resourceCounts = new Map<string, number>()
+  const userCounts = new Map<string, number>()
+
+  for (const r of resources || []) {
+    resourceCounts.set(r.client_id, (resourceCounts.get(r.client_id) || 0) + 1)
+  }
+  for (const p of profiles || []) {
+    if (p.client_id) {
+      userCounts.set(p.client_id, (userCounts.get(p.client_id) || 0) + 1)
+    }
+  }
+
+  const enriched = (clients || []).map((c: Record<string, unknown>) => ({
+    ...c,
+    assigned_lists: resourceCounts.get(c.id as string) || 0,
+    user_count: userCounts.get(c.id as string) || 0,
+  }))
+
+  return NextResponse.json({ data: enriched })
 }
 
 export async function POST(request: NextRequest) {
@@ -60,4 +88,35 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ data }, { status: 201 })
+}
+
+export async function DELETE(request: NextRequest) {
+  const session = await getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  if (session.role !== 'admin') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const body = await request.json()
+  const { id } = body
+
+  if (!id) {
+    return NextResponse.json({ error: 'Client ID is required' }, { status: 400 })
+  }
+
+  const supabase = await createServiceRoleClient()
+
+  // Delete client (cascade will remove client_resources)
+  const { error } = await supabase
+    .from('clients')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ success: true })
 }
