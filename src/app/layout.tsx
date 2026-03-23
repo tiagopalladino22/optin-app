@@ -19,6 +19,9 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "OPTIN",
   description: "Newsletter Management Platform",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
@@ -38,7 +39,7 @@ export default function Sidebar() {
   return (
     <aside className="w-56 bg-navy flex flex-col min-h-screen">
       <div className="p-5 border-b border-white/[0.08]">
-        <h1 className="text-xl font-display tracking-widest text-white">OPTIN</h1>
+        <Image src="/logo.png" alt="OPTIN" width={120} height={40} className="brightness-0 invert" />
       </div>
 
       <nav className="flex-1 p-3 space-y-0.5">
