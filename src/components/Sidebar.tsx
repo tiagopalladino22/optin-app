@@ -4,21 +4,30 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { useData } from '@/lib/DataProvider'
 
-const navItems = [
+type NavItem = {
+  href: string
+  label: string
+  icon: React.ComponentType<{ active?: boolean }>
+  adminOnly?: boolean
+}
+
+const navItems: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
   { href: '/lists', label: 'Lists', icon: ListIcon },
-  { href: '/import', label: 'Import', icon: ImportIcon },
+  { href: '/import', label: 'Import', icon: ImportIcon, adminOnly: true },
   { href: '/campaigns', label: 'Campaigns', icon: CampaignIcon },
-  { href: '/segments', label: 'Segments', icon: SegmentIcon },
-  { href: '/settings', label: 'Settings', icon: SettingsIcon },
+  { href: '/segments', label: 'Segments', icon: SegmentIcon, adminOnly: true },
   { href: '/stats', label: 'Stats', icon: StatsIcon },
+  { href: '/settings', label: 'Settings', icon: SettingsIcon, adminOnly: true },
 ]
 
 export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+  const { userRole } = useData()
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -33,7 +42,9 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 p-3 space-y-0.5">
-        {navItems.map((item) => {
+        {navItems
+          .filter((item) => !item.adminOnly || userRole === 'admin')
+          .map((item) => {
           const isActive = pathname.startsWith(item.href)
           return (
             <Link

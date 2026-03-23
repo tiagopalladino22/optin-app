@@ -2,6 +2,8 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
 
+export type UserRole = 'admin' | 'client'
+
 interface ListItem {
   id: number
   name: string
@@ -31,6 +33,7 @@ interface DataContextType {
   campaigns: CampaignItem[]
   listsLoading: boolean
   campaignsLoading: boolean
+  userRole: UserRole | null
   refreshLists: () => Promise<void>
   refreshCampaigns: () => Promise<void>
 }
@@ -40,6 +43,7 @@ const DataContext = createContext<DataContextType>({
   campaigns: [],
   listsLoading: true,
   campaignsLoading: true,
+  userRole: null,
   refreshLists: async () => {},
   refreshCampaigns: async () => {},
 })
@@ -85,6 +89,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [campaigns, setCampaigns] = useState<CampaignItem[]>([])
   const [listsLoading, setListsLoading] = useState(true)
   const [campaignsLoading, setCampaignsLoading] = useState(true)
+  const [userRole, setUserRole] = useState<UserRole | null>(null)
 
   const refreshLists = useCallback(async () => {
     try {
@@ -112,6 +117,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Fetch user role on mount
+  useEffect(() => {
+    fetch('/api/me')
+      .then((r) => r.json())
+      .then((data) => { if (data.role) setUserRole(data.role) })
+      .catch(() => {})
+  }, [])
+
   // Preload both on mount
   useEffect(() => {
     refreshLists()
@@ -120,7 +133,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   return (
     <DataContext.Provider
-      value={{ lists, campaigns, listsLoading, campaignsLoading, refreshLists, refreshCampaigns }}
+      value={{ lists, campaigns, listsLoading, campaignsLoading, userRole, refreshLists, refreshCampaigns }}
     >
       {children}
     </DataContext.Provider>

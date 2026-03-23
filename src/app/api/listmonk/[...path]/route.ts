@@ -132,6 +132,14 @@ async function handleProxy(
 
   // Forward query params
   const url = new URL(request.url)
+
+  // For client users requesting lists or campaigns, fetch all pages so filtering
+  // doesn't break pagination (filtered results < per_page would stop the client from paginating)
+  if (session.role !== 'admin' && (resourceType === 'list' || resourceType === 'campaign')) {
+    url.searchParams.set('per_page', '500')
+    url.searchParams.set('page', '1')
+  }
+
   const queryString = url.searchParams.toString()
   const fullPath = queryString ? `${pathStr}?${queryString}` : pathStr
 

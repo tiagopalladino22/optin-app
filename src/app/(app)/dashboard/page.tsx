@@ -85,7 +85,7 @@ export default function DashboardPage() {
     loadUniqueStats()
   }, [campaignsLoading, sentCampaigns])
 
-  const loading = listsLoading && campaignsLoading
+  const loading = listsLoading || campaignsLoading
 
   if (loading) {
     return (
