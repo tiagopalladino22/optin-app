@@ -2,26 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    font-family: var(--font-dm-sans), system-ui, sans-serif;
+    color: #07111f;
+    background-color: #f4f1ec;
+    -webkit-font-smoothing: antialiased;
   }
-}
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-}
+  /* Skeleton loading animation */
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  .skeleton {
+    background: linear-gradient(90deg, #e0ddd8 25%, #ebe8e3 50%, #e0ddd8 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    border-radius: 6px;
   }
 }

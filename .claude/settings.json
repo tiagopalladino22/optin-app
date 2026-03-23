@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /Users/tiagopalladino/optin-app/src -type f \\\\\\(-name *.ts -o -name *.tsx -o -name *.css \\\\\\))",
+      "Bash(source /Users/tiagopalladino/optin-app/.env.local)",
+      "Bash(curl -s \"https://optin150.com/api/subscribers?per_page=1&query=subscribers.id%20IN%20\\(SELECT%20subscriber_id%20FROM%20campaign_views%20GROUP%20BY%20subscriber_id%20HAVING%20COUNT\\(DISTINCT%20campaign_id\\)%20%3E=%201\\)\" -u $LISTMONK_USERNAME:$LISTMONK_PASSWORD)",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s \"https://optin150.com/api/subscribers?per_page=1&query=subscribers.id%20IN%20\\(SELECT%20subscriber_id%20FROM%20campaign_lists\\)\" -u $LISTMONK_USERNAME:$LISTMONK_PASSWORD)",
+      "Bash(curl -s \"https://optin150.com/api/subscribers?per_page=1&query=subscribers.campaigns%20%3E=%201\" -u $LISTMONK_USERNAME:$LISTMONK_PASSWORD)",
+      "Bash(curl -s \"https://optin150.com/api/subscribers?per_page=1&query=subscribers.id%20IN%20\\(SELECT%20subscriber_id%20FROM%20campaign_views%20WHERE%20campaign_id%20IN%20\\(SELECT%20id%20FROM%20campaigns%20WHERE%20status%3D%27finished%27\\)%20GROUP%20BY%20subscriber_id%20HAVING%20COUNT\\(DISTINCT%20campaign_id\\)%20%3E=%201\\)\" -u $LISTMONK_USERNAME:$LISTMONK_PASSWORD)",
+      "Bash(npx next:*)",
+      "Bash(curl -s \"https://optin150.com/api/subscribers?per_page=1&query=subscribers.id%20IN%20\\(SELECT%20subscriber_id%20FROM%20link_clicks%20GROUP%20BY%20subscriber_id%20HAVING%20COUNT\\(DISTINCT%20campaign_id\\)%20%3E=%201\\)\" -u $LISTMONK_USERNAME:$LISTMONK_PASSWORD)",
+      "Bash(curl -s \"https://optin150.com/api/subscribers?per_page=0&query=subscribers.id%20IN%20\\(SELECT%20subscriber_id%20FROM%20campaign_views%20WHERE%20campaign_id%3D260\\)\" -u $LISTMONK_USERNAME:$LISTMONK_PASSWORD)",
+      "Bash(curl -s \"https://optin150.com/api/subscribers?per_page=0&query=subscribers.id%20IN%20\\(SELECT%20subscriber_id%20FROM%20link_clicks%20WHERE%20campaign_id%3D260\\)\" -u $LISTMONK_USERNAME:$LISTMONK_PASSWORD)",
+      "Bash(echo \"URL: $LISTMONK_URL\")",
+      "Bash(echo \"User: $LISTMONK_USERNAME\")"
+    ]
+  }
+}
