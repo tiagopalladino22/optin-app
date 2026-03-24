@@ -39,7 +39,7 @@ export default function Sidebar() {
   return (
     <aside className="w-56 bg-navy flex flex-col min-h-screen">
       <div className="p-5 border-b border-white/[0.08]">
-        <Image src="/logo.png" alt="OPTIN" width={120} height={40} className="brightness-0 invert" />
+        <Image src="/logo.png" alt="OPTIN" width={140} height={46} className="object-contain" />
       </div>
 
       <nav className="flex-1 p-3 space-y-0.5">
