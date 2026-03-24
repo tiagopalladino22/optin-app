@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { listmonkFetch } from '@/lib/listmonk'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createServiceRoleClient } from '@/lib/supabase-server'
 
 interface SubscriberPayload {
   email: string
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
   // Verify the client owns this list (unless admin)
   if (session.role !== 'admin' && session.clientId) {
-    const supabase = await createServerSupabaseClient()
+    const supabase = await createServiceRoleClient()
     const { data: resource } = await supabase
       .from('client_resources')
       .select('id')

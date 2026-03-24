@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createServiceRoleClient } from '@/lib/supabase-server'
 
 // GET all segments for the current user's client
 export async function GET() {
@@ -9,7 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServiceRoleClient()
 
   let query = supabase
     .from('segments')
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServiceRoleClient()
 
   const { data, error } = await supabase
     .from('segments')
@@ -70,4 +70,68 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ data }, { status: 201 })
+}
+
+// PUT update a segment
+export async function PUT(request: NextRequest) {
+  const session = await getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const body = await request.json()
+  const { id, name, description, rules, logic } = body
+
+  if (!id) {
+    return NextResponse.json({ error: 'Segment ID is required' }, { status: 400 })
+  }
+
+  const supabase = await createServiceRoleClient()
+
+  const updates: Record<string, unknown> = {}
+  if (name !== undefined) updates.name = name
+  if (description !== undefined) updates.description = description || null
+  if (rules !== undefined) updates.rules = rules
+  if (logic !== undefined) updates.logic = logic
+
+  const { data, error } = await supabase
+    .from('segments')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ data })
+}
+
+// DELETE a segment
+export async function DELETE(request: NextRequest) {
+  const session = await getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const body = await request.json()
+  const { id } = body
+
+  if (!id) {
+    return NextResponse.json({ error: 'Segment ID is required' }, { status: 400 })
+  }
+
+  const supabase = await createServiceRoleClient()
+
+  const { error } = await supabase
+    .from('segments')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ success: true })
 }

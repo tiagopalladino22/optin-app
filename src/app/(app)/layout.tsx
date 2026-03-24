@@ -8,7 +8,7 @@ export default function AppLayout({
 }) {
   return (
     <DataProvider>
-      <div className="flex min-h-screen bg-offwhite">
+      <div className="flex h-screen bg-offwhite">
         <Sidebar />
         <main className="flex-1 p-8 overflow-auto">
           {children}

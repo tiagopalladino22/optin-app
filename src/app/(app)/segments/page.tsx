@@ -18,21 +18,44 @@ interface Segment {
 export default function SegmentsPage() {
   const [segments, setSegments] = useState<Segment[]>([])
   const [loading, setLoading] = useState(true)
+  const [deleting, setDeleting] = useState<string | null>(null)
+
+  async function fetchSegments() {
+    try {
+      const res = await fetch('/api/segments')
+      const data = await res.json()
+      setSegments(data.data || [])
+    } catch (err) {
+      console.error('Failed to fetch segments:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    async function fetchSegments() {
-      try {
-        const res = await fetch('/api/segments')
-        const data = await res.json()
-        setSegments(data.data || [])
-      } catch (err) {
-        console.error('Failed to fetch segments:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
     fetchSegments()
   }, [])
+
+  async function handleDelete(seg: Segment) {
+    if (!confirm(`Delete segment "${seg.name}"?`)) return
+    setDeleting(seg.id)
+    try {
+      const res = await fetch('/api/segments', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: seg.id }),
+      })
+      if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error)
+      }
+      setSegments((prev) => prev.filter((s) => s.id !== seg.id))
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete')
+    } finally {
+      setDeleting(null)
+    }
+  }
 
   if (loading) {
     return (
@@ -69,37 +92,31 @@ export default function SegmentsPage() {
               <tr className="border-b border-border-custom bg-offwhite">
                 <th className="text-left px-4 py-3 text-text-light uppercase text-xs tracking-wider font-medium">Name</th>
                 <th className="text-left px-4 py-3 text-text-light uppercase text-xs tracking-wider font-medium">Rules</th>
-                <th className="text-left px-4 py-3 text-text-light uppercase text-xs tracking-wider font-medium">Logic</th>
                 <th className="text-right px-4 py-3 text-text-light uppercase text-xs tracking-wider font-medium">Subscribers</th>
-                <th className="text-left px-4 py-3 text-text-light uppercase text-xs tracking-wider font-medium">Last Run</th>
                 <th className="text-left px-4 py-3 text-text-light uppercase text-xs tracking-wider font-medium">Exported</th>
                 <th className="text-left px-4 py-3 text-text-light uppercase text-xs tracking-wider font-medium">Created</th>
+                <th className="text-right px-4 py-3 text-text-light uppercase text-xs tracking-wider font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {segments.map((seg) => (
                 <tr key={seg.id} className="border-b border-border-custom last:border-0 hover:bg-offwhite/50">
                   <td className="px-4 py-3">
-                    <p className="text-accent hover:text-accent-bright font-medium">{seg.name}</p>
+                    <Link href={`/segments/${seg.id}`} className="text-accent hover:text-accent-bright font-medium">
+                      {seg.name}
+                    </Link>
                     {seg.description && (
                       <p className="text-xs text-text-light mt-0.5">{seg.description}</p>
                     )}
                   </td>
                   <td className="px-4 py-3 text-text-mid">
                     {seg.rules.length} rule{seg.rules.length !== 1 ? 's' : ''}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-block bg-offwhite text-text-mid uppercase rounded-lg px-2 py-0.5 text-xs font-medium">
+                    <span className="ml-1 inline-block bg-offwhite text-text-mid uppercase rounded-lg px-1.5 py-0.5 text-xs font-medium">
                       {seg.logic}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right text-navy tabular-nums">
                     {seg.subscriber_count > 0 ? seg.subscriber_count.toLocaleString() : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-text-light">
-                    {seg.last_run_at
-                      ? new Date(seg.last_run_at).toLocaleDateString()
-                      : '—'}
                   </td>
                   <td className="px-4 py-3">
                     {seg.exported_list_id ? (
@@ -112,6 +129,20 @@ export default function SegmentsPage() {
                   </td>
                   <td className="px-4 py-3 text-text-light">
                     {new Date(seg.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-3">
+                      <Link href={`/segments/${seg.id}`} className="text-xs text-text-light hover:text-accent font-medium">
+                        View
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(seg)}
+                        disabled={deleting === seg.id}
+                        className="text-xs text-red-500 hover:text-red-700 font-medium disabled:opacity-50"
+                      >
+                        {deleting === seg.id ? 'Deleting...' : 'Delete'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

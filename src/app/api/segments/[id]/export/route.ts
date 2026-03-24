@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { listmonkFetch } from '@/lib/listmonk'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createServiceRoleClient } from '@/lib/supabase-server'
 
 interface Subscriber {
   id: number
@@ -29,7 +29,7 @@ export async function POST(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServiceRoleClient()
 
   // Fetch the segment
   const { data: segment, error: segError } = await supabase
@@ -135,7 +135,7 @@ async function getMatchingSubscribers(
   logic: 'and' | 'or',
   clientId: string | null,
   isAdmin: boolean,
-  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>
+  supabase: Awaited<ReturnType<typeof createServiceRoleClient>>
 ): Promise<Subscriber[]> {
   let allowedListIds: number[] = []
 

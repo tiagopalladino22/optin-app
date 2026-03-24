@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { listmonkFetch } from '@/lib/listmonk'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createServiceRoleClient } from '@/lib/supabase-server'
 
 interface SegmentRule {
   field: string
@@ -25,9 +25,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { rules, logic } = (await request.json()) as {
+  const { rules, logic, returnAll } = (await request.json()) as {
     rules: SegmentRule[]
     logic: 'and' | 'or'
+    returnAll?: boolean
   }
 
   if (!rules?.length) {
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Get the client's allowed list IDs for filtering
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServiceRoleClient()
   let allowedListIds: number[] = []
 
   if (session.role !== 'admin' && session.clientId) {
@@ -133,11 +134,13 @@ export async function POST(request: NextRequest) {
     }
 
     const total = allSubscribers.length
-    const sample = allSubscribers.slice(0, 10).map((s) => ({
+    const limit = returnAll ? 200 : 10
+    const sample = allSubscribers.slice(0, limit).map((s) => ({
+      id: s.id,
       email: s.email,
       name: s.name,
       attribs: s.attribs,
-      lists: s.lists?.map((l) => l.name) || [],
+      lists: returnAll ? s.lists : s.lists?.map((l) => ({ id: l.id, name: l.name })),
       created_at: s.created_at,
     }))
 
