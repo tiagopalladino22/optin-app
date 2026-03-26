@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { useData } from '@/lib/DataProvider'
 
 type Tab = 'clients' | 'users' | 'resources'
 
@@ -10,6 +9,9 @@ interface Client {
   name: string
   slug: string
   owner_email: string
+  listmonk_url?: string
+  listmonk_username?: string
+  listmonk_password?: string
   created_at: string
   assigned_lists?: number
   user_count?: number
@@ -79,10 +81,11 @@ function ClientsTab() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const [form, setForm] = useState({ name: '', slug: '', owner_email: '' })
+  const [form, setForm] = useState({ name: '', slug: '', owner_email: '', listmonk_url: '', listmonk_username: '', listmonk_password: '' })
 
   const fetchClients = useCallback(async () => {
     setLoading(true)
@@ -113,25 +116,59 @@ function ClientsTab() {
     })
   }
 
+  function startEdit(client: Client) {
+    setEditingId(client.id)
+    setForm({
+      name: client.name,
+      slug: client.slug,
+      owner_email: client.owner_email,
+      listmonk_url: client.listmonk_url || '',
+      listmonk_username: client.listmonk_username || '',
+      listmonk_password: '',
+    })
+    setShowForm(true)
+  }
+
+  function cancelForm() {
+    setShowForm(false)
+    setEditingId(null)
+    setForm({ name: '', slug: '', owner_email: '', listmonk_url: '', listmonk_username: '', listmonk_password: '' })
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
     setError(null)
     setSuccess(null)
     try {
-      const res = await fetch('/api/settings/clients', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error)
-      setSuccess('Client created successfully')
-      setForm({ name: '', slug: '', owner_email: '' })
-      setShowForm(false)
+      if (editingId) {
+        // Update existing client
+        const payload: Record<string, unknown> = { id: editingId, ...form }
+        // Don't send empty password (keep existing)
+        if (!payload.listmonk_password) delete payload.listmonk_password
+        const res = await fetch('/api/settings/clients', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error)
+        setSuccess('Client updated successfully')
+      } else {
+        // Create new client
+        const res = await fetch('/api/settings/clients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form),
+        })
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error)
+        setSuccess('Client created successfully')
+      }
+      cancelForm()
       fetchClients()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to create client')
+      setError(err instanceof Error ? err.message : editingId ? 'Failed to update client' : 'Failed to create client')
     } finally {
       setSaving(false)
     }
@@ -156,7 +193,7 @@ function ClientsTab() {
             Clients
           </h2>
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => { if (showForm) { cancelForm() } else { setEditingId(null); setShowForm(true) } }}
             className="bg-accent text-white hover:bg-accent-bright rounded-lg font-medium px-4 py-2 text-sm"
           >
             {showForm ? 'Cancel' : 'Add Client'}
@@ -226,26 +263,34 @@ function ClientsTab() {
                       {new Date(client.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-5 py-3 text-right">
-                      <button
-                        onClick={async () => {
-                          if (!confirm(`Delete client "${client.name}"? This will also remove all their resource assignments.`)) return
-                          try {
-                            const res = await fetch('/api/settings/clients', {
-                              method: 'DELETE',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ id: client.id }),
-                            })
-                            if (!res.ok) { const json = await res.json(); throw new Error(json.error) }
-                            setSuccess('Client deleted')
-                            fetchClients()
-                          } catch (err: unknown) {
-                            setError(err instanceof Error ? err.message : 'Failed to delete')
-                          }
-                        }}
-                        className="text-xs text-red-500 hover:text-red-700 font-medium"
-                      >
-                        Delete
-                      </button>
+                      <div className="flex items-center justify-end gap-3">
+                        <button
+                          onClick={() => startEdit(client)}
+                          className="text-xs text-accent hover:text-accent-bright font-medium"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!confirm(`Delete client "${client.name}"? This will also remove all their resource assignments.`)) return
+                            try {
+                              const res = await fetch('/api/settings/clients', {
+                                method: 'DELETE',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ id: client.id }),
+                              })
+                              if (!res.ok) { const json = await res.json(); throw new Error(json.error) }
+                              setSuccess('Client deleted')
+                              fetchClients()
+                            } catch (err: unknown) {
+                              setError(err instanceof Error ? err.message : 'Failed to delete')
+                            }
+                          }}
+                          className="text-xs text-red-500 hover:text-red-700 font-medium"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -258,7 +303,7 @@ function ClientsTab() {
       {showForm && (
         <div className="bg-white rounded-xl border border-border-custom p-5">
           <h2 className="font-display text-xl tracking-wide text-navy uppercase mb-4">
-            New Client
+            {editingId ? 'Edit Client' : 'New Client'}
           </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -304,22 +349,74 @@ function ClientsTab() {
                 />
               </div>
             </div>
+
+            <div className="border-t border-border-custom pt-4 mt-2">
+              <p className="text-xs text-text-light uppercase tracking-wider font-medium mb-3">Listmonk Connection</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-text-mid mb-1">
+                    Listmonk URL
+                  </label>
+                  <input
+                    type="text"
+                    value={form.listmonk_url}
+                    onChange={(e) => setForm({ ...form, listmonk_url: e.target.value })}
+                    className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                    placeholder="https://mail.example.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-mid mb-1">
+                    Listmonk Username
+                  </label>
+                  <input
+                    type="text"
+                    value={form.listmonk_username}
+                    onChange={(e) => setForm({ ...form, listmonk_username: e.target.value })}
+                    className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                    placeholder="admin"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-mid mb-1">
+                    Listmonk Password
+                  </label>
+                  <input
+                    type="password"
+                    value={form.listmonk_password}
+                    onChange={(e) => setForm({ ...form, listmonk_password: e.target.value })}
+                    className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-text-light mt-2">
+                Leave blank to use the default Listmonk instance. Fill in to connect this client to their own Listmonk.
+              </p>
+            </div>
+
             <div className="flex gap-3">
               <button
                 type="submit"
                 disabled={saving}
                 className="bg-accent text-white hover:bg-accent-bright rounded-lg font-medium px-4 py-2 text-sm disabled:opacity-50"
               >
-                {saving ? 'Saving...' : 'Save Client'}
+                {saving ? 'Saving...' : editingId ? 'Update Client' : 'Save Client'}
               </button>
               <button
                 type="button"
-                onClick={() => setShowForm(false)}
+                onClick={cancelForm}
                 className="border border-border-custom text-text-mid hover:bg-white rounded-lg px-4 py-2 text-sm"
               >
                 Cancel
               </button>
             </div>
+
+            {editingId && (
+              <p className="text-xs text-text-light mt-2">
+                Leave Listmonk password blank to keep the existing one.
+              </p>
+            )}
           </form>
         </div>
       )}
@@ -611,20 +708,16 @@ function UsersTab() {
 /* ─── Resources Tab ───────────────────────────────────────────── */
 
 function ResourcesTab() {
-  const { lists: sharedLists, listsLoading } = useData()
   const [clients, setClients] = useState<Client[]>([])
   const [selectedClientId, setSelectedClientId] = useState('')
   const [assignedListIds, setAssignedListIds] = useState<number[]>([])
+  const [lists, setLists] = useState<{ id: number; name: string; subscriber_count: number }[]>([])
   const [loadingClients, setLoadingClients] = useState(true)
   const [loadingResources, setLoadingResources] = useState(false)
+  const [loadingLists, setLoadingLists] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set())
   const [searchQuery, setSearchQuery] = useState('')
-
-  const lists = useMemo(
-    () => sharedLists.map((l) => ({ id: l.id, name: l.name, subscriber_count: l.subscriber_count })),
-    [sharedLists]
-  )
 
   const filteredLists = useMemo(() => {
     if (!searchQuery.trim()) return lists
@@ -640,9 +733,16 @@ function ResourcesTab() {
       .finally(() => setLoadingClients(false))
   }, [])
 
+  // When a client is selected, fetch their Listmonk lists + assigned resources
   useEffect(() => {
     if (!selectedClientId) return
+
     setLoadingResources(true)
+    setLoadingLists(true)
+    setLists([])
+    setError(null)
+
+    // Fetch assigned resources
     fetch(`/api/settings/resources?client_id=${selectedClientId}`)
       .then((r) => r.json())
       .then((json) => {
@@ -656,6 +756,19 @@ function ResourcesTab() {
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load resources'))
       .finally(() => setLoadingResources(false))
+
+    // Fetch lists from this client's Listmonk instance
+    fetch(`/api/settings/client-lists?client_id=${selectedClientId}`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.error) {
+          setError(json.error)
+        } else if (json.data) {
+          setLists(json.data)
+        }
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load lists from Listmonk'))
+      .finally(() => setLoadingLists(false))
   }, [selectedClientId])
 
   async function toggleList(listId: number, listName: string) {
@@ -721,7 +834,7 @@ function ResourcesTab() {
 
       {selectedClientId && (
         <div className="bg-white rounded-xl border border-border-custom p-5 space-y-4">
-          {loadingResources || listsLoading ? (
+          {loadingResources || loadingLists ? (
             <div className="space-y-3">
               <div className="skeleton h-6 w-32" />
               <div className="skeleton h-10 w-full" />

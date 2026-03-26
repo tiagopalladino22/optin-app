@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="format-detection" content="telephone=no,address=no,email=no,date=no,url=no">
+  <title>The Operations Brief — Issue #1</title>
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+  <style>
+    /* Reset */
+    * { box-sizing: border-box; }
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+    body { margin: 0; padding: 0; width: 100% !important; min-width: 100%; background-color: #f4f2ef; }
+    
+    /* Typography */
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    
+    /* Links */
+    a { color: #C8392A; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Mobile */
+    @media only screen and (max-width: 620px) {
+      .wrapper { width: 100% !important; padding: 0 !important; }
+      .container { width: 100% !important; max-width: 100% !important; }
+      .mobile-pad { padding-left: 20px !important; padding-right: 20px !important; }
+      .banner-title { font-size: 32px !important; letter-spacing: 3px !important; }
+      .banner-tagline { font-size: 11px !important; }
+      .section-label { font-size:13px !important; }
+      .content-h2 { font-size: 20px !important; }
+      .stat-block td { display: block !important; width: 100% !important; padding-bottom: 12px !important; }
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f2ef;">
+
+{{ TrackView }}
+
+<!-- Preheader -->
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;color:#f4f2ef;line-height:1px;">
+  You're selling to 11 people. You've only met 4 of them. Plus: the 90-day proof case, and a $247/month stack that found a $38K deal.
+</div>
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;color:#f4f2ef;line-height:1px;">
+  &zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;
+</div>
+
+<!-- Outer wrapper -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#f4f2ef;">
+  <tr>
+    <td align="center" style="padding: 24px 16px;">
+
+      <!-- Main container -->
+      <table class="container" role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width:600px;width:100%;">
+
+        <!-- ===== BANNER ===== -->
+        <tr>
+          <td>
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+              <tr>
+                <!-- Red accent bar top -->
+                <td style="background-color:#C8392A;height:5px;border-radius:8px 8px 0 0;font-size:0;line-height:0;">&nbsp;</td>
+              </tr>
+              <tr>
+                <td style="background-color:#1a1a1a;padding:36px 40px 28px 40px;border-radius:0;" align="center">
+                  
+                  <!-- Logo row -->
+                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                    <tr>
+                      <td align="center" style="padding-bottom:20px;">
+                        <!-- Colony Spark logomark — inline SVG circle+dot brand mark -->
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                          <tr>
+                            <td align="center">
+                              <div style="display:inline-block;">
+                                <!--[if mso]><v:oval style="width:28px;height:28px;" fillcolor="#C8392A" strokecolor="#C8392A"><v:fill type="solid"/></v:oval><![endif]-->
+                                <!--[if !mso]><!-->
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/1x1/1.png" alt="" width="1" height="1" style="display:block;width:1px;height:1px;opacity:0;">
+                                <!--<![endif]-->
+                              </div>
+                              <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:3px;color:#C8392A;text-transform:uppercase;">BY BILL MURPHY</span>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td align="center">
+                        <!-- Newsletter name -->
+                        <h1 class="banner-title" style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:42px;font-weight:800;letter-spacing:5px;color:#ffffff;text-transform:uppercase;line-height:1.1;">THE OPERATIONS<br>BRIEF</h1>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td align="center" style="padding-top:14px;">
+                        <!-- Red divider line -->
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                          <tr>
+                            <td style="background-color:#C8392A;width:48px;height:2px;font-size:0;line-height:0;">&nbsp;</td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td align="center" style="padding-top:12px;">
+                        <p class="banner-tagline" style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;font-weight:500;letter-spacing:2px;color:#999999;text-transform:uppercase;">ISSUE #1 &nbsp;·&nbsp; MARCH 20, 2026</p>
+                      </td>
+                    </tr>
+                  </table>
+
+                </td>
+              </tr>
+              <tr>
+                <td style="background-color:#C8392A;height:3px;font-size:0;line-height:0;">&nbsp;</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Spacer -->
+        <tr><td style="height:8px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+        <!-- ===== INTRO ===== -->
+        <tr>
+          <td style="background-color:#ffffff;border-radius:8px;padding:32px 40px;" class="mobile-pad">
+            <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.7;color:#444444;">
+              Welcome to Issue #1. Every week, I'm going to cover one shift in how B2B companies actually win deals, one tactical framework you can use this week, and one stack worth knowing about. No fluff. No theory. Just what's working.
+            </p>
+            <p style="margin:12px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.7;color:#444444;">
+              This week: the hidden buying committee killing your deals, the 90-day proof case replacing the annual pitch, and how a $247/month stack turned anonymous website traffic into a $38K closed deal.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Spacer -->
+        <tr><td style="height:8px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+        <!-- ===== SECTION 1: THE SHIFT ===== -->
+        <tr>
+          <td style="background-color:#ffffff;border-radius:8px;overflow:hidden;">
+            
+            <!-- Section label bar -->
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+              <tr>
+                <td style="background-color:#1a1a1a;padding:18px 40px;" class="mobile-pad">
+                  <p class="section-label" style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;font-weight:700;letter-spacing:4px;color:#C8392A;text-transform:uppercase;">THE SHIFT</p>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Section content -->
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+              <tr>
+                <td style="padding:32px 40px 36px;" class="mobile-pad">
+
+                  <!-- Headline -->
+                  <h2 class="content-h2" style="margin:0 0 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:24px;font-weight:800;color:#1a1a1a;line-height:1.25;">You're selling to 11 people.<br>You've only met 4 of them.</h2>
+                  <p style="margin:0 0 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;color:#C8392A;letter-spacing:0.5px;text-transform:uppercase;">The hidden buying committee killing B2B deals</p>
+
+                  <p style="margin:0 0 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.75;color:#444444;">
+                    I've spent years selling into manufacturing and industrial companies. The pattern I keep seeing: most B2B teams map their visible committee and call it done. They've never heard of the shadow committee. That's why their deals die.
+                  </p>
+
+                  <!-- Pull quote -->
+                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;">
+                    <tr>
+                      <td style="border-left:3px solid #C8392A;padding:12px 20px;background-color:#fdf6f5;border-radius:0 6px 6px 0;">
+                        <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.65;color:#1a1a1a;font-style:italic;font-weight:500;">
+                          "The ones with real power aren't even in the meetings. You're taking your one message, your one position statement, and bringing it through the entire buying committee. That doesn't work."
+                        </p>
+                        <p style="margin:10px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;font-weight:700;color:#C8392A;text-transform:uppercase;letter-spacing:1px;">Bill Murphy, Founder &amp; Chief Strategist · Colony Spark</p>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <p style="margin:0 0 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.75;color:#444444;">
+                    I break the real buying structure into three layers. Most teams only see one of them.
+                  </p>
+
+                  <!-- Layer 1 -->
+                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:16px;">
+                    <tr>
+                      <td style="padding:18px 20px;background-color:#f9f9f9;border-radius:6px;border-top:2px solid #1a1a1a;">
+                        <p style="margin:0 0 6px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:10px;font-weight:800;letter-spacing:2px;color:#888888;text-transform:uppercase;">LAYER 1</p>
+                        <p style="margin:0 0 6px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;font-weight:800;color:#1a1a1a;">The Visible Committee</p>
+                        <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.65;color:#555555;">VP of Operations, CFO, IT Director. These are the meetings you're getting. The CFO could be nodding along in your pitch while calculating if the board needs approval. For a $500K software purchase, that's another 3 months minimum.</p>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Layer 2 -->
+                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:16px;">
+                    <tr>
+                      <td style="padding:18px 20px;background-color:#f9f9f9;border-radius:6px;border-top:2px solid #C8392A;">
+                        <p style="margin:0 0 6px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:10px;font-weight:800;letter-spacing:2px;color:#C8392A;text-transform:uppercase;">LAYER 2</p>
+                        <p style="margin:0 0 6px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;font-weight:800;color:#1a1a1a;">The Shadow Committee</p>
+                        <p style="margin:0 0 10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.65;color:#555555;">The people who never get on a vendor call but influence everything:</p>
+                        <p style="margin:0 0 6px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.65;color:#555555;"><strong style="color:#1a1a1a;">The plant manager.</strong> Been there 20 years. Influences 73% of tech decisions but attends 0% of vendor calls. Has a direct line to the CEO. Two words from him can kill your deal: "this disrupts production."</p>
+                        <p style="margin:0 0 6px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.65;color:#555555;"><strong style="color:#1a1a1a;">The legacy IT guy.</strong> Built the patchwork of custom scripts keeping everything running. When he says "this doesn't work with our system," the deal is dead.</p>
+                        <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.65;color:#555555;"><strong style="color:#1a1a1a;">The production supervisor.</strong> Controls the workers who'll actually use what you're selling. In companies doing $10-50M, this could be the owner's first hire. Easy place for quiet sabotage.</p>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Layer 3 -->
+                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:24px;">
+                    <tr>
+                      <td style="padding:18px 20px;background-color:#f9f9f9;border-radius:6px;border-top:2px solid #888888;">
+                        <p style="margin:0 0 6px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:10px;font-weight:800;letter-spacing:2px;color:#888888;text-transform:uppercase;">LAYER 3</p>
+                        <p style="margin:0 0 6px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;font-weight:800;color:#1a1a1a;">The Political Layer</p>
+                        <p style="margin:0 0 6px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.65;color:#555555;"><strong style="color:#1a1a1a;">The 25-year executive retiring in 18 months.</strong> Pension depends on no major failures. He slow-walks everything to next quarter. Every quarter.</p>
+                        <p style="margin:0 0 6px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.65;color:#555555;"><strong style="color:#1a1a1a;">Your "champion" who needs a quick win.</strong> Pushing too hard. Their ambition creates internal backlash. They can actually hurt your deal.</p>
+                        <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.65;color:#555555;"><strong style="color:#1a1a1a;">The owner's inner circle.</strong> Golf buddies. A spouse. Long-time customers at dinner parties telling the owner "don't change a thing." Never in a meeting. Always in the owner's ear.</p>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- The counterintuitive move -->
+                  <p style="margin:0 0 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:17px;font-weight:800;color:#1a1a1a;">The counterintuitive move</p>
+                  <p style="margin:0 0 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.75;color:#444444;">
+                    The companies cutting 12-month cycles down to 6 didn't start at the C-suite. They went straight to the plant manager. Phase one priced under $50K, no board approval needed, one production line, one measurable improvement. Get the plant manager to say yes today. Then let the results do the selling up the chain.
+                  </p>
+                  <p style="margin:0 0 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.75;color:#444444;">
+                    Crawl, walk, run: $45K pilot, then full plant rollout, then enterprise deployment. Each phase builds trust and reduces risk. By the time you're asking for the big contract, you're the incumbent.
+                  </p>
+
+                  <!-- CTA Button -->
+                  <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                    <tr>
+                      <td style="background-color:#C8392A;border-radius:4px;">
+                        <a href="https://youtube.com/watch?v=LP9P3MqULlo@TrackLink" style="display:inline-block;padding:12px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;font-weight:700;color:#ffffff;text-decoration:none;letter-spacing:0.5px;">Watch My Full Breakdown &rarr;</a>
+                      </td>
+                    </tr>
+                  </table>
+
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Spacer -->
+        <tr><td style="height:8px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+        <!-- ===== SECTION 2: FROM THE FLOOR ===== -->
+        <tr>
+          <td style="background-color:#ffffff;border-radius:8px;overflow:hidden;">
+            
+            <!-- Section label bar -->
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+              <tr>
+                <td style="background-color:#1a1a1a;padding:18px 40px;" class="mobile-pad">
+                  <p class="section-label" style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;font-weight:700;letter-spacing:4px;color:#C8392A;text-transform:uppercase;">FROM THE FLOOR</p>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Content -->
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+              <tr>
+                <td style="padding:32px 40px 36px;" class="mobile-pad">
+
+                  <h2 class="content-h2" style="margin:0 0 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:24px;font-weight:800;color:#1a1a1a;line-height:1.25;">The 12-month implementation pitch is dead.<br>Here's what replaced it.</h2>
+                  <p style="margin:0 0 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;color:#C8392A;letter-spacing:0.5px;text-transform:uppercase;">Building a 90-day proof case</p>
+
+                  <p style="margin:0 0 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.75;color:#444444;">
+                    Buyers have zero patience for "trust us, it'll pay off." The companies winning right now build 90-day proof cases with hard dollar metrics before asking for the real budget. They run structured pilots that generate CFO-ready numbers, then use those numbers to unlock the full contract.
+                  </p>
+
+                  <!-- Jacob Reese quote -->
+                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:0 0 24px;">
+                    <tr>
+                      <td style="background-color:#fdf6f5;border-radius:6px;padding:24px 24px 20px;border-top:2px solid #C8392A;">
+                        <p style="margin:0 0 14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.75;color:#1a1a1a;font-style:italic;">
+                          "Our biggest tech misstep in 2025 was rolling out a new VMI inventory tracking system across 15 customer locations without proper pilot testing. We pushed it live to hit Q1 goals, and within three weeks our restocking accuracy dropped from 94% to 71%. We'd spent six figures on tech that made us worse at the exact thing that differentiated us. For 2026, we completely changed our approach. Now we pilot any system at just 2-3 locations for a full quarter, and our veteran team members have veto power if the tech doesn't match real-world job site conditions."
+                        </p>
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                          <tr>
+                            <td>
+                              <p style="margin:0 0 1px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;font-weight:800;color:#1a1a1a;">Jacob Reese</p>
+                              <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:#888888;">VP, Standard Plumbing &nbsp;·&nbsp; <a href="https://techronicler.com/the-glitch-report-what-went-wrong-in-tech-in-2025-and-how-we-fixed-it/@TrackLink" style="color:#C8392A;text-decoration:none;">via TechRonicler</a></p>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Stat grid -->
+                  <table class="stat-block" role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;">
+                    <tr>
+                      <td width="50%" style="padding:0 8px 0 0;vertical-align:top;">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                          <tr>
+                            <td style="background-color:#fdf6f5;border-radius:6px;padding:16px;border-top:2px solid #C8392A;">
+                              <p style="margin:0 0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:28px;font-weight:800;color:#C8392A;line-height:1;">57%</p>
+                              <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;line-height:1.5;color:#555555;">of B2B buyers now expect ROI within 3 months of purchase</p>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                      <td width="50%" style="padding:0 0 0 8px;vertical-align:top;">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                          <tr>
+                            <td style="background-color:#fdf6f5;border-radius:6px;padding:16px;border-top:2px solid #C8392A;">
+                              <p style="margin:0 0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:28px;font-weight:800;color:#C8392A;line-height:1;">72%</p>
+                              <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;line-height:1.5;color:#555555;">more likely to sign a full contract after a successful pilot</p>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    <tr><td colspan="2" style="height:12px;">&nbsp;</td></tr>
+                    <tr>
+                      <td width="50%" style="padding:0 8px 0 0;vertical-align:top;">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                          <tr>
+                            <td style="background-color:#fdf6f5;border-radius:6px;padding:16px;border-top:2px solid #C8392A;">
+                              <p style="margin:0 0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:28px;font-weight:800;color:#C8392A;line-height:1;">34%</p>
+                              <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;line-height:1.5;color:#555555;">faster close rate for pilot-based deals vs. traditional cycles</p>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                      <td width="50%" style="padding:0 0 0 8px;vertical-align:top;">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                          <tr>
+                            <td style="background-color:#fdf6f5;border-radius:6px;padding:16px;border-top:2px solid #C8392A;">
+                              <p style="margin:0 0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:28px;font-weight:800;color:#C8392A;line-height:1;">40-60%</p>
+                              <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;line-height:1.5;color:#555555;">structured pilot conversion rate vs. under 10% for free trials</p>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <p style="margin:0 0 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.75;color:#444444;">
+                    The difference between a pilot that converts and a free trial that dies: defined metrics and a hard end date. "Try it and see" doesn't work. A 90-day window with a CFO-ready one-pager does.
+                  </p>
+                  <p style="margin:0 0 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.75;color:#444444;">
+                    We built a fill-in-the-blank CFO one-pager template you can use to structure your own 90-day proof case. Five sections: problem quantified in dollars, solution cost, 90-day measurable outcome, risk mitigation, and decision needed. I use a version of this with every client before asking for the full budget conversation.
+                  </p>
+
+                  <!-- CTA Button -->
+                  <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                    <tr>
+                      <td style="background-color:#C8392A;border-radius:4px;">
+                        <a href="https://docs.google.com/document/d/1rQWtxN-RRVb-foWjklsuCz4tPNYFQcrBka0Ce4nuwO0/edit@TrackLink" style="display:inline-block;padding:12px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;font-weight:700;color:#ffffff;text-decoration:none;letter-spacing:0.5px;">Get the 90-Day Proof Case Template &rarr;</a>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Roundtable CTA -->
+                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top:24px;">
+                    <tr>
+                      <td style="background-color:#f4f2ef;border-radius:6px;padding:18px 20px;border-left:3px solid #1a1a1a;">
+                        <p style="margin:0 0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;font-weight:700;color:#1a1a1a;text-transform:uppercase;letter-spacing:1px;">Operations Brief Roundtables</p>
+                        <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.65;color:#555555;">Launching next month. Small groups. Real problems. No pitches. If you want to pressure-test your 90-day proof case with other founders who've done it, reply to this email to get on the list.</p>
+                      </td>
+                    </tr>
+                  </table>
+
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Spacer -->
+        <tr><td style="height:8px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+        <!-- ===== SECTION 3: THE STACK ===== -->
+        <tr>
+          <td style="background-color:#ffffff;border-radius:8px;overflow:hidden;">
+            
+            <!-- Section label bar -->
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+              <tr>
+                <td style="background-color:#1a1a1a;padding:18px 40px;" class="mobile-pad">
+                  <p class="section-label" style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;font-weight:700;letter-spacing:4px;color:#C8392A;text-transform:uppercase;">THE STACK</p>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Content -->
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+              <tr>
+                <td style="padding:32px 40px 36px;" class="mobile-pad">
+
+                  <h2 class="content-h2" style="margin:0 0 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:24px;font-weight:800;color:#1a1a1a;line-height:1.25;">$247/month to turn anonymous website<br>visitors into a $38K deal</h2>
+                  <p style="margin:0 0 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;color:#C8392A;letter-spacing:0.5px;text-transform:uppercase;">A client implementation story</p>
+
+                  <p style="margin:0 0 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.75;color:#444444;">
+                    An industrial equipment distributor. 1,400 monthly website visitors, mostly from organic search. Decent traffic, zero visibility into who was actually visiting. Their analytics showed page views. It didn't show that a procurement manager at a regional distribution center visited their conveyor systems page three times in one week.
+                  </p>
+
+                  <p style="margin:0 0 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.75;color:#444444;">
+                    We implemented a two-tool stack:
+                  </p>
+
+                  <!-- Tool cards -->
+                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:12px;">
+                    <tr>
+                      <td style="background-color:#f9f9f9;border-radius:6px;padding:18px 20px;border-left:3px solid #C8392A;">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                          <tr>
+                            <td>
+                              <p style="margin:0 0 2px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;font-weight:800;color:#1a1a1a;"><a href="https://www.rb2b.com@TrackLink" style="color:#1a1a1a;text-decoration:none;">RB2B Pro</a> &nbsp;<span style="font-size:13px;font-weight:600;color:#C8392A;">$149/mo</span></p>
+                              <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.65;color:#555555;">Identifies individual visitors (name, company, email, LinkedIn) by matching IP and browser data to person-level profiles.</p>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:24px;">
+                    <tr>
+                      <td style="background-color:#f9f9f9;border-radius:6px;padding:18px 20px;border-left:3px solid #C8392A;">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                          <tr>
+                            <td>
+                              <p style="margin:0 0 2px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;font-weight:800;color:#1a1a1a;"><a href="https://www.clay.com@TrackLink" style="color:#1a1a1a;text-decoration:none;">Clay</a> &nbsp;<span style="font-size:13px;font-weight:600;color:#C8392A;">~$100/mo</span></p>
+                              <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.65;color:#555555;">Enriches identified visitors with firmographic data, scores against ICP criteria, triggers alerts for high-intent signals.</p>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Results box -->
+                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:24px;">
+                    <tr>
+                      <td style="background-color:#1a1a1a;border-radius:6px;padding:20px 24px;">
+                        <p style="margin:0 0 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:10px;font-weight:800;letter-spacing:2px;color:#C8392A;text-transform:uppercase;">60-Day Results</p>
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                          <tr>
+                            <td style="padding:5px 0;border-bottom:1px solid #333333;">
+                              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                <tr>
+                                  <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;color:#999999;">Unique visitors identified on high-intent pages</td>
+                                  <td align="right" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;font-weight:700;color:#ffffff;">89</td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="padding:5px 0;border-bottom:1px solid #333333;">
+                              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                <tr>
+                                  <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;color:#999999;">Matched ICP after Clay enrichment</td>
+                                  <td align="right" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;font-weight:700;color:#ffffff;">23</td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="padding:5px 0;border-bottom:1px solid #333333;">
+                              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                <tr>
+                                  <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;color:#999999;">Became qualified conversations</td>
+                                  <td align="right" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;font-weight:700;color:#ffffff;">6</td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="padding:5px 0;border-bottom:1px solid #333333;">
+                              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                <tr>
+                                  <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;color:#999999;">Entered pipeline</td>
+                                  <td align="right" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;font-weight:700;color:#ffffff;">2</td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="padding:5px 0;">
+                              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                <tr>
+                                  <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;color:#999999;">Closed within 90 days</td>
+                                  <td align="right" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;font-weight:800;color:#C8392A;">$38,000</td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Intent scoring -->
+                  <p style="margin:0 0 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;font-weight:800;color:#1a1a1a;">How to score intent (not every visit is equal)</p>
+                  
+                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:24px;">
+                    <tr>
+                      <td style="padding:4px 0;">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                          <tr>
+                            <td width="80" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;color:#888888;text-transform:uppercase;vertical-align:top;padding:8px 0;">Low</td>
+                            <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;color:#555555;vertical-align:top;padding:8px 0;border-bottom:1px solid #f0f0f0;">Blog post, single page visit. Log it, don't act on it.</td>
+                          </tr>
+                          <tr>
+                            <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;color:#C8392A;text-transform:uppercase;vertical-align:top;padding:8px 0;">Medium</td>
+                            <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;color:#555555;vertical-align:top;padding:8px 0;border-bottom:1px solid #f0f0f0;">Product or service page. Enrich and check ICP fit.</td>
+                          </tr>
+                          <tr>
+                            <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;color:#C8392A;text-transform:uppercase;vertical-align:top;padding:8px 0;">High</td>
+                            <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;color:#555555;vertical-align:top;padding:8px 0;border-bottom:1px solid #f0f0f0;">Pricing page plus case study in same session. Outreach within 24 hours.</td>
+                          </tr>
+                          <tr>
+                            <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;font-weight:800;color:#C8392A;text-transform:uppercase;vertical-align:top;padding:8px 0;">Very High</td>
+                            <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;color:#555555;vertical-align:top;padding:8px 0;">Multiple visits in one week. Priority outreach today. This person is actively evaluating.</td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.7;color:#777777;font-style:italic;">
+                    One caveat: RB2B typically identifies 15-30% of US traffic. If your traffic is low, the identification layer multiplies what you already have. It doesn't create demand. Build that elsewhere first.
+                  </p>
+
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Spacer -->
+        <tr><td style="height:8px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+        <!-- ===== FOOTER ===== -->
+        <tr>
+          <td style="background-color:#1a1a1a;border-radius:8px;padding:32px 40px;" class="mobile-pad">
+            
+            <!-- Footer logo / brand -->
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:20px;">
+              <tr>
+                <td>
+                  <p style="margin:0 0 2px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;font-weight:800;color:#ffffff;letter-spacing:2px;text-transform:uppercase;">THE OPERATIONS BRIEF</p>
+                  <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:#666666;">by Bill Murphy &nbsp;·&nbsp; Powered by <a href="https://colonyspark.com@TrackLink" style="color:#C8392A;text-decoration:none;">Colony Spark</a></p>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Reply CTA -->
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:24px;">
+              <tr>
+                <td style="background-color:#222222;border-radius:6px;padding:16px 20px;">
+                  <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.65;color:#cccccc;">Have a question about any of this? Hit reply. I read every one.</p>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Unsubscribe / legal -->
+            <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;line-height:1.7;color:#555555;text-align:center;">
+              You're receiving this because you subscribed to The Operations Brief.<br>
+              <a href="{{ UnsubscribeURL }}" style="color:#C8392A;text-decoration:underline;">Unsubscribe</a> &nbsp;·&nbsp; Bill Murphy
+            </p>
+
+          </td>
+        </tr>
+
+        <!-- Bottom spacer -->
+        <tr><td style="height:24px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+      </table>
+      <!-- /Main container -->
+
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

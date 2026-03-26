@@ -6,6 +6,8 @@ create table if not exists clients (
   owner_email text not null,
   listmonk_url text not null,
   listmonk_api_key text, -- encrypted API key (optional, we use basic auth by default)
+  listmonk_username text,
+  listmonk_password text,
   created_at timestamptz not null default now()
 );
 
