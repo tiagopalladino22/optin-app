@@ -20,6 +20,7 @@ interface Props {
   logic: 'and' | 'or'
   onChange: (rules: SegmentRule[]) => void
   onLogicChange: (logic: 'and' | 'or') => void
+  publicationCode?: string  // When set, shows preview of matching lists for "All lists" mode
 }
 
 const FIELD_OPTIONS = [
@@ -72,7 +73,7 @@ function generateId() {
   return Math.random().toString(36).slice(2, 9)
 }
 
-export default function SegmentRuleEditor({ rules, logic, onChange, onLogicChange }: Props) {
+export default function SegmentRuleEditor({ rules, logic, onChange, onLogicChange, publicationCode }: Props) {
   const [lists, setLists] = useState<ListOption[]>([])
   const [listsLoading, setListsLoading] = useState(true)
   const [listSearch, setListSearch] = useState('')
@@ -80,15 +81,19 @@ export default function SegmentRuleEditor({ rules, logic, onChange, onLogicChang
   useEffect(() => {
     async function fetchLists() {
       try {
-        const res = await fetch('/api/listmonk/lists?per_page=100')
-        const data = await res.json()
-        setLists(
-          (data.data?.results || []).map((l: ListOption) => ({
-            id: l.id,
-            name: l.name,
-            subscriber_count: l.subscriber_count,
-          }))
-        )
+        const allLists: ListOption[] = []
+        let page = 1
+        while (true) {
+          const res = await fetch(`/api/listmonk/lists?per_page=100&page=${page}`)
+          const data = await res.json()
+          const results = data.data?.results || []
+          for (const l of results) {
+            allLists.push({ id: l.id, name: l.name, subscriber_count: l.subscriber_count })
+          }
+          if (results.length < 100) break
+          page++
+        }
+        setLists(allLists)
       } catch {
         // ignore
       } finally {
@@ -218,47 +223,110 @@ export default function SegmentRuleEditor({ rules, logic, onChange, onLogicChang
 
             {/* List selector dropdown */}
             {isListField && (
-              <div className="ml-12 bg-offwhite rounded-lg border border-border-custom p-3 max-h-60 overflow-y-auto">
+              <div className="ml-12 bg-offwhite rounded-lg border border-border-custom p-3 max-h-72 overflow-y-auto">
                 {listsLoading ? (
                   <p className="text-sm text-text-light">Loading lists...</p>
                 ) : lists.length === 0 ? (
                   <p className="text-sm text-text-light">No lists found.</p>
                 ) : (
                   <div className="space-y-1">
-                    <input
-                      type="text"
-                      value={listSearch}
-                      onChange={(e) => setListSearch(e.target.value)}
-                      placeholder="Search lists..."
-                      className="block w-full border border-border-custom rounded-lg px-2 py-1.5 text-sm text-navy placeholder:text-text-light mb-2 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-                    />
-                    <p className="text-xs text-text-light mb-2">
-                      {selectedListIds.length} selected
-                    </p>
-                    {lists
-                      .filter((l) => !listSearch.trim() || l.name.toLowerCase().includes(listSearch.toLowerCase()))
-                      .map((list) => {
-                      const isSelected = selectedListIds.includes(String(list.id))
+                    {/* All lists option — used with automations to auto-match by publication */}
+                    <label
+                      className={`flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm font-medium transition-colors border-b border-border-custom mb-2 pb-2 ${
+                        rule.value === 'all' ? 'bg-accent-wash text-accent' : 'hover:bg-white text-text-mid'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name={`list-mode-${rule.id}`}
+                        checked={rule.value === 'all'}
+                        onChange={() => updateRule(rule.id, { value: 'all', operator: 'all' })}
+                        className="text-accent focus:ring-accent"
+                      />
+                      <span>All lists (auto-match by publication)</span>
+                    </label>
+                    {rule.value === 'all' && (() => {
+                      const code = publicationCode?.toUpperCase()
+                      const matching = code
+                        ? lists.filter((l) => l.name.toUpperCase().startsWith(code))
+                        : lists
                       return (
-                        <label
-                          key={list.id}
-                          className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer text-sm transition-colors ${
-                            isSelected ? 'bg-accent-wash text-accent' : 'hover:bg-white text-text-mid'
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => toggleListSelection(rule.id, list.id, rule.value)}
-                            className="rounded border-border-custom text-accent focus:ring-accent"
-                          />
-                          <span className="flex-1">{list.name}</span>
-                          <span className="text-xs text-text-light">
-                            {list.subscriber_count.toLocaleString()} subs
-                          </span>
-                        </label>
+                        <div className="ml-6 mb-2 text-xs">
+                          {!code ? (
+                            <p className="text-amber-600">Select a publication to see matching lists.</p>
+                          ) : matching.length === 0 ? (
+                            <p className="text-text-light">No lists found starting with &quot;{code}&quot;</p>
+                          ) : (
+                            <>
+                              <p className="text-text-light mb-1">
+                                {matching.length} list{matching.length !== 1 ? 's' : ''} matching &quot;{code}&quot;:
+                              </p>
+                              {matching.slice(0, 5).map((l) => (
+                                <p key={l.id} className="text-text-mid py-0.5">
+                                  {l.name} <span className="text-text-light">({l.subscriber_count.toLocaleString()} subs)</span>
+                                </p>
+                              ))}
+                              {matching.length > 5 && (
+                                <p className="text-text-light mt-0.5">...and {matching.length - 5} more</p>
+                              )}
+                            </>
+                          )}
+                        </div>
                       )
-                    })}
+                    })()}
+                    <label
+                      className={`flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm font-medium transition-colors mb-1 ${
+                        rule.value !== 'all' ? 'text-navy' : 'text-text-light'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name={`list-mode-${rule.id}`}
+                        checked={rule.value !== 'all'}
+                        onChange={() => updateRule(rule.id, { value: '', operator: 'in' })}
+                        className="text-accent focus:ring-accent"
+                      />
+                      <span>Select specific lists</span>
+                    </label>
+
+                    {rule.value !== 'all' && (
+                      <>
+                        <input
+                          type="text"
+                          value={listSearch}
+                          onChange={(e) => setListSearch(e.target.value)}
+                          placeholder="Search lists..."
+                          className="block w-full border border-border-custom rounded-lg px-2 py-1.5 text-sm text-navy placeholder:text-text-light mb-2 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                        />
+                        <p className="text-xs text-text-light mb-2">
+                          {selectedListIds.length} selected
+                        </p>
+                        {lists
+                          .filter((l) => !listSearch.trim() || l.name.toLowerCase().includes(listSearch.toLowerCase()))
+                          .map((list) => {
+                          const isSelected = selectedListIds.includes(String(list.id))
+                          return (
+                            <label
+                              key={list.id}
+                              className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer text-sm transition-colors ${
+                                isSelected ? 'bg-accent-wash text-accent' : 'hover:bg-white text-text-mid'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => toggleListSelection(rule.id, list.id, rule.value)}
+                                className="rounded border-border-custom text-accent focus:ring-accent"
+                              />
+                              <span className="flex-1">{list.name}</span>
+                              <span className="text-xs text-text-light">
+                                {list.subscriber_count.toLocaleString()} subs
+                              </span>
+                            </label>
+                          )
+                        })}
+                      </>
+                    )}
                   </div>
                 )}
               </div>

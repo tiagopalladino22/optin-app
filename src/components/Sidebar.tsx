@@ -20,6 +20,8 @@ const navItems: NavItem[] = [
   { href: '/import', label: 'Import', icon: ImportIcon, adminOnly: true },
   { href: '/campaigns', label: 'Campaigns', icon: CampaignIcon },
   { href: '/segments', label: 'Segments', icon: SegmentIcon, adminOnly: true },
+  { href: '/publications', label: 'Publications', icon: PublicationsIcon, adminOnly: true },
+  { href: '/automations', label: 'Automations', icon: AutomationsIcon, adminOnly: true },
   { href: '/stats', label: 'Stats', icon: StatsIcon },
   { href: '/settings', label: 'Settings', icon: SettingsIcon, adminOnly: true },
 ]
@@ -129,6 +131,22 @@ function StatsIcon({ active }: { active?: boolean }) {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={active ? '#3a85c8' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+    </svg>
+  )
+}
+
+function PublicationsIcon({ active }: { active?: boolean }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={active ? '#3a85c8' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
+  )
+}
+
+function AutomationsIcon({ active }: { active?: boolean }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={active ? '#3a85c8' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
     </svg>
   )
 }

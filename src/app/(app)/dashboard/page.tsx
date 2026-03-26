@@ -5,7 +5,7 @@ import SubscriberGrowthChart from '@/components/stats/SubscriberGrowthChart'
 import { useData } from '@/lib/DataProvider'
 
 export default function DashboardPage() {
-  const { lists, campaigns, listsLoading, campaignsLoading } = useData()
+  const { lists, campaigns, listsLoading, campaignsLoading, userEmail } = useData()
   const [avgOpenRate, setAvgOpenRate] = useState<number | null>(null)
   const [avgClickRate, setAvgClickRate] = useState<number | null>(null)
 
@@ -109,7 +109,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="font-display text-3xl tracking-wide text-navy uppercase">Dashboard</h1>
+      <h1 className="font-display text-3xl tracking-wide text-navy uppercase">Hey {userEmail}</h1>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Total Subscribers" value={totalSubscribers.toLocaleString()} />

@@ -34,6 +34,7 @@ interface DataContextType {
   listsLoading: boolean
   campaignsLoading: boolean
   userRole: UserRole | null
+  userEmail: string | null
   refreshLists: () => Promise<void>
   refreshCampaigns: () => Promise<void>
 }
@@ -44,6 +45,7 @@ const DataContext = createContext<DataContextType>({
   listsLoading: true,
   campaignsLoading: true,
   userRole: null,
+  userEmail: null,
   refreshLists: async () => {},
   refreshCampaigns: async () => {},
 })
@@ -90,6 +92,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [listsLoading, setListsLoading] = useState(true)
   const [campaignsLoading, setCampaignsLoading] = useState(true)
   const [userRole, setUserRole] = useState<UserRole | null>(null)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
 
   const refreshLists = useCallback(async () => {
     try {
@@ -121,7 +124,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     fetch('/api/me')
       .then((r) => r.json())
-      .then((data) => { if (data.role) setUserRole(data.role) })
+      .then((data) => {
+        if (data.role) setUserRole(data.role)
+        if (data.email) setUserEmail(data.email)
+      })
       .catch(() => {})
   }, [])
 
@@ -133,7 +139,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   return (
     <DataContext.Provider
-      value={{ lists, campaigns, listsLoading, campaignsLoading, userRole, refreshLists, refreshCampaigns }}
+      value={{ lists, campaigns, listsLoading, campaignsLoading, userRole, userEmail, refreshLists, refreshCampaigns }}
     >
       {children}
     </DataContext.Provider>
