@@ -91,7 +91,7 @@ export default function StatsPage() {
     return chrono.map((c) => ({
       name: c.name.length > 20 ? c.name.slice(0, 18) + '...' : c.name,
       openRate: c.sent > 0 ? ((c.uniqueOpens || c.views) / c.sent) * 100 : 0,
-      clickRate: c.sent > 0 ? ((c.uniqueClicks || c.clicks) / c.sent) * 100 : 0,
+      clickRate: (c.uniqueOpens || c.views) > 0 ? ((c.uniqueClicks || c.clicks) / (c.uniqueOpens || c.views)) * 100 : 0,
     }))
   }, [detailedCampaigns])
 
@@ -120,7 +120,7 @@ export default function StatsPage() {
     const rows = detailedCampaigns.map((c) => {
       const delivered = c.sent - c.bounces
       const openRate = c.sent > 0 ? (((c.uniqueOpens || c.views) / c.sent) * 100).toFixed(1) : '0.0'
-      const clickRate = c.sent > 0 ? (((c.uniqueClicks || c.clicks) / c.sent) * 100).toFixed(1) : '0.0'
+      const clickRate = (c.uniqueOpens || c.views) > 0 ? (((c.uniqueClicks || c.clicks) / (c.uniqueOpens || c.views)) * 100).toFixed(1) : '0.0'
       return [
         `"${c.name}"`,
         `"${c.subject}"`,
@@ -180,7 +180,7 @@ export default function StatsPage() {
   const totalTotalClicks = detailedCampaigns.reduce((s, c) => s + c.clicks, 0)
   const totalBounces = detailedCampaigns.reduce((s, c) => s + c.bounces, 0)
   const avgOpenRate = totalSent > 0 ? ((totalUniqueOpens / totalSent) * 100).toFixed(1) : '0.0'
-  const avgClickRate = totalSent > 0 ? ((totalUniqueClicks / totalSent) * 100).toFixed(1) : '0.0'
+  const avgClickRate = totalUniqueOpens > 0 ? ((totalUniqueClicks / totalUniqueOpens) * 100).toFixed(1) : '0.0'
 
   return (
     <div className="space-y-8">

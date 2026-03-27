@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import Pagination from '@/components/ui/Pagination'
 import { useData } from '@/lib/DataProvider'
 
@@ -9,8 +10,10 @@ const PER_PAGE = 10
 
 export default function CampaignsPage() {
   const { campaigns, campaignsLoading } = useData()
+  const router = useRouter()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
 
   const filteredCampaigns = useMemo(() => {
     if (!search.trim()) return campaigns
@@ -51,13 +54,37 @@ export default function CampaignsPage() {
       </div>
 
       {campaigns.length > 0 && (
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search campaigns..."
-          className="block w-full px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-sm"
-        />
+        <div className="flex items-center gap-3">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search campaigns..."
+            className="flex-1 px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-sm"
+          />
+          {selectedIds.size > 0 && (
+            <>
+              <button
+                onClick={() => {
+                  const ids = Array.from(selectedIds).join(',')
+                  router.push(`/campaigns/summary?ids=${ids}`)
+                }}
+                className="px-4 py-2 border border-accent text-accent hover:bg-accent-wash rounded-lg font-medium text-sm transition-colors shrink-0"
+              >
+                Summary
+              </button>
+              <button
+                onClick={() => {
+                  const ids = Array.from(selectedIds).join(',')
+                  router.push(`/campaigns/${Array.from(selectedIds)[0]}?queue=${ids}`)
+                }}
+                className="px-4 py-2 bg-accent text-white hover:bg-accent-bright rounded-lg font-medium text-sm transition-colors shrink-0"
+              >
+                View {selectedIds.size} selected
+              </button>
+            </>
+          )}
+        </div>
       )}
 
       {filteredCampaigns.length === 0 ? (
@@ -72,6 +99,23 @@ export default function CampaignsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border-custom bg-offwhite">
+                  <th className="w-10 px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={paginatedCampaigns.length > 0 && paginatedCampaigns.every((c) => selectedIds.has(c.id))}
+                      onChange={(e) => {
+                        setSelectedIds((prev) => {
+                          const next = new Set(prev)
+                          for (const c of paginatedCampaigns) {
+                            if (e.target.checked) next.add(c.id)
+                            else next.delete(c.id)
+                          }
+                          return next
+                        })
+                      }}
+                      className="rounded border-border-custom text-accent focus:ring-accent"
+                    />
+                  </th>
                   <th className="text-left px-4 py-3 text-text-light uppercase text-xs tracking-wider font-medium">Name</th>
                   <th className="text-left px-4 py-3 text-text-light uppercase text-xs tracking-wider font-medium">Subject</th>
                   <th className="text-left px-4 py-3 text-text-light uppercase text-xs tracking-wider font-medium">Status</th>
@@ -80,7 +124,25 @@ export default function CampaignsPage() {
               </thead>
               <tbody>
                 {paginatedCampaigns.map((c) => (
-                  <tr key={c.id} className="border-b border-border-custom last:border-0 hover:bg-offwhite/50">
+                  <tr
+                    key={c.id}
+                    className={`border-b border-border-custom last:border-0 hover:bg-offwhite/50 ${selectedIds.has(c.id) ? 'bg-accent-wash/30' : ''}`}
+                  >
+                    <td className="w-10 px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(c.id)}
+                        onChange={() => {
+                          setSelectedIds((prev) => {
+                            const next = new Set(prev)
+                            if (next.has(c.id)) next.delete(c.id)
+                            else next.add(c.id)
+                            return next
+                          })
+                        }}
+                        className="rounded border-border-custom text-accent focus:ring-accent"
+                      />
+                    </td>
                     <td className="px-4 py-3">
                       <Link href={`/campaigns/${c.id}`} className="text-accent hover:text-accent-bright font-medium">
                         {c.name}

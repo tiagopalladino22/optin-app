@@ -716,14 +716,25 @@ function ResourcesTab() {
   const [loadingResources, setLoadingResources] = useState(false)
   const [loadingLists, setLoadingLists] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set())
   const [searchQuery, setSearchQuery] = useState('')
+  const [assignMode, setAssignMode] = useState<'code' | 'manual'>('code')
+  const [pubCode, setPubCode] = useState('')
+  const [applyingCode, setApplyingCode] = useState(false)
 
   const filteredLists = useMemo(() => {
     if (!searchQuery.trim()) return lists
     const q = searchQuery.toLowerCase()
     return lists.filter((l) => l.name.toLowerCase().includes(q))
   }, [lists, searchQuery])
+
+  // Lists matching the pub code for preview
+  const codeMatchedLists = useMemo(() => {
+    if (!pubCode.trim()) return []
+    const code = pubCode.toUpperCase()
+    return lists.filter((l) => l.name.toUpperCase().startsWith(code))
+  }, [lists, pubCode])
 
   useEffect(() => {
     fetch('/api/settings/clients')
@@ -733,7 +744,6 @@ function ResourcesTab() {
       .finally(() => setLoadingClients(false))
   }, [])
 
-  // When a client is selected, fetch their Listmonk lists + assigned resources
   useEffect(() => {
     if (!selectedClientId) return
 
@@ -741,8 +751,8 @@ function ResourcesTab() {
     setLoadingLists(true)
     setLists([])
     setError(null)
+    setPubCode('')
 
-    // Fetch assigned resources
     fetch(`/api/settings/resources?client_id=${selectedClientId}`)
       .then((r) => r.json())
       .then((json) => {
@@ -757,7 +767,6 @@ function ResourcesTab() {
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load resources'))
       .finally(() => setLoadingResources(false))
 
-    // Fetch lists from this client's Listmonk instance
     fetch(`/api/settings/client-lists?client_id=${selectedClientId}`)
       .then((r) => r.json())
       .then((json) => {
@@ -770,6 +779,44 @@ function ResourcesTab() {
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load lists from Listmonk'))
       .finally(() => setLoadingLists(false))
   }, [selectedClientId])
+
+  async function applyByCode() {
+    if (!pubCode.trim() || codeMatchedLists.length === 0) return
+    setApplyingCode(true)
+    setError(null)
+
+    try {
+      // Find lists to add (matched but not assigned) and lists to remove (assigned but not matched)
+      const matchedIds = new Set(codeMatchedLists.map((l) => l.id))
+      const toAdd = codeMatchedLists.filter((l) => !assignedListIds.includes(l.id))
+      const toRemove = assignedListIds.filter((id) => !matchedIds.has(id))
+
+      // Add new ones
+      for (const list of toAdd) {
+        await fetch('/api/settings/resources', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clientId: selectedClientId, resourceType: 'list', listmonkId: list.id, label: list.name }),
+        })
+      }
+
+      // Remove old ones not matching the code
+      for (const listId of toRemove) {
+        await fetch('/api/settings/resources', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clientId: selectedClientId, resourceType: 'list', listmonkId: listId }),
+        })
+      }
+
+      setAssignedListIds(Array.from(matchedIds))
+      setSuccess(`Assigned ${codeMatchedLists.length} lists matching "${pubCode.toUpperCase()}"`)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to apply')
+    } finally {
+      setApplyingCode(false)
+    }
+  }
 
   async function toggleList(listId: number, listName: string) {
     setTogglingIds((prev) => new Set(prev).add(listId))
@@ -808,6 +855,13 @@ function ResourcesTab() {
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl text-red-700 px-4 py-3 text-sm">
           {error}
+          <button onClick={() => setError(null)} className="ml-2 underline">dismiss</button>
+        </div>
+      )}
+      {success && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 px-4 py-3 text-sm">
+          {success}
+          <button onClick={() => setSuccess(null)} className="ml-2 underline">dismiss</button>
         </div>
       )}
 
@@ -851,49 +905,130 @@ function ResourcesTab() {
                 </span>
               </div>
 
-              {lists.length > 10 && (
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search lists..."
-                  className="block w-full px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-sm"
-                />
+              {/* Mode toggle */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setAssignMode('code')}
+                  className={`flex-1 p-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                    assignMode === 'code'
+                      ? 'border-accent bg-accent-wash text-accent'
+                      : 'border-border-custom text-text-mid hover:bg-offwhite'
+                  }`}
+                >
+                  By publication code
+                </button>
+                <button
+                  onClick={() => setAssignMode('manual')}
+                  className={`flex-1 p-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                    assignMode === 'manual'
+                      ? 'border-accent bg-accent-wash text-accent'
+                      : 'border-border-custom text-text-mid hover:bg-offwhite'
+                  }`}
+                >
+                  Select individually
+                </button>
+              </div>
+
+              {/* By publication code */}
+              {assignMode === 'code' && (
+                <div className="space-y-3">
+                  <div className="flex items-end gap-3">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-text-mid mb-1">Publication Code</label>
+                      <input
+                        type="text"
+                        value={pubCode}
+                        onChange={(e) => setPubCode(e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5))}
+                        placeholder="e.g. EIT"
+                        className="w-full max-w-[120px] px-3 py-2 border border-border-custom rounded-lg text-navy font-mono text-center uppercase placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                      />
+                    </div>
+                    <button
+                      onClick={applyByCode}
+                      disabled={!pubCode.trim() || codeMatchedLists.length === 0 || applyingCode}
+                      className="px-4 py-2 bg-accent text-white hover:bg-accent-bright rounded-lg font-medium text-sm disabled:opacity-50 transition-colors"
+                    >
+                      {applyingCode ? 'Applying...' : `Assign ${codeMatchedLists.length} lists`}
+                    </button>
+                  </div>
+
+                  {pubCode && (
+                    <div className="bg-offwhite rounded-lg border border-border-custom p-3">
+                      {codeMatchedLists.length === 0 ? (
+                        <p className="text-sm text-text-light">No lists found starting with &quot;{pubCode}&quot;</p>
+                      ) : (
+                        <>
+                          <p className="text-xs text-text-light mb-2">
+                            {codeMatchedLists.length} list{codeMatchedLists.length !== 1 ? 's' : ''} matching &quot;{pubCode}&quot;:
+                          </p>
+                          {codeMatchedLists.slice(0, 8).map((l) => (
+                            <div key={l.id} className="flex items-center justify-between py-1 text-sm">
+                              <span className="text-text-mid">{l.name}</span>
+                              <span className="text-xs text-text-light">{l.subscriber_count.toLocaleString()} subs</span>
+                            </div>
+                          ))}
+                          {codeMatchedLists.length > 8 && (
+                            <p className="text-xs text-text-light mt-1">...and {codeMatchedLists.length - 8} more</p>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  <p className="text-xs text-text-light">
+                    This will assign all lists starting with the code and remove any previously assigned lists that don&apos;t match.
+                  </p>
+                </div>
               )}
 
-              {filteredLists.length === 0 ? (
-                <p className="text-sm text-text-light">
-                  {searchQuery ? 'No lists match your search.' : 'No lists found in Listmonk.'}
-                </p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {filteredLists.map((list) => {
-                    const toggling = togglingIds.has(list.id)
-                    const checked = assignedListIds.includes(list.id)
-                    return (
-                      <label
-                        key={list.id}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors ${
-                          checked
-                            ? 'border-accent bg-accent-wash'
-                            : 'border-border-custom hover:bg-offwhite/50'
-                        } ${toggling ? 'opacity-50' : ''}`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleList(list.id, list.name)}
-                          disabled={toggling}
-                          className="rounded border-border-custom text-accent focus:ring-accent"
-                        />
-                        <span className="flex-1 text-sm text-navy truncate">{list.name}</span>
-                        <span className="text-xs text-text-light shrink-0">
-                          {list.subscriber_count.toLocaleString()} subs
-                        </span>
-                      </label>
-                    )
-                  })}
-                </div>
+              {/* Manual selection */}
+              {assignMode === 'manual' && (
+                <>
+                  {lists.length > 10 && (
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search lists..."
+                      className="block w-full px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-sm"
+                    />
+                  )}
+
+                  {filteredLists.length === 0 ? (
+                    <p className="text-sm text-text-light">
+                      {searchQuery ? 'No lists match your search.' : 'No lists found in Listmonk.'}
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {filteredLists.map((list) => {
+                        const toggling = togglingIds.has(list.id)
+                        const checked = assignedListIds.includes(list.id)
+                        return (
+                          <label
+                            key={list.id}
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors ${
+                              checked
+                                ? 'border-accent bg-accent-wash'
+                                : 'border-border-custom hover:bg-offwhite/50'
+                            } ${toggling ? 'opacity-50' : ''}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleList(list.id, list.name)}
+                              disabled={toggling}
+                              className="rounded border-border-custom text-accent focus:ring-accent"
+                            />
+                            <span className="flex-1 text-sm text-navy truncate">{list.name}</span>
+                            <span className="text-xs text-text-light shrink-0">
+                              {list.subscriber_count.toLocaleString()} subs
+                            </span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}

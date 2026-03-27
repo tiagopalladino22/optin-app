@@ -49,7 +49,7 @@ export default function CampaignStatsTable({ campaigns }: Props) {
               const uniqueOpens = c.uniqueOpens || c.views
               const uniqueClicks = c.uniqueClicks || c.clicks
               const openRate = c.sent > 0 ? ((uniqueOpens / c.sent) * 100).toFixed(1) : '0.0'
-              const clickRate = c.sent > 0 ? ((uniqueClicks / c.sent) * 100).toFixed(1) : '0.0'
+              const clickRate = uniqueOpens > 0 ? ((uniqueClicks / uniqueOpens) * 100).toFixed(1) : '0.0'
 
               return (
                 <tr key={c.id} className="border-b border-border-custom last:border-0 hover:bg-offwhite/50 transition-colors">

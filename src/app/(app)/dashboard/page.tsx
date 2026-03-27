@@ -75,7 +75,7 @@ export default function DashboardPage() {
         }
 
         setAvgOpenRate(totalSent > 0 ? (totalUniqueOpens / totalSent) * 100 : 0)
-        setAvgClickRate(totalSent > 0 ? (totalUniqueClicks / totalSent) * 100 : 0)
+        setAvgClickRate(totalUniqueOpens > 0 ? (totalUniqueClicks / totalUniqueOpens) * 100 : 0)
       } catch {
         setAvgOpenRate(0)
         setAvgClickRate(0)
