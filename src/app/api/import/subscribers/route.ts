@@ -116,24 +116,49 @@ async function pollImportStatus(): Promise<{
   skipped?: number
   errors?: string[]
 }> {
-  // Poll Listmonk's import status endpoint
-  for (let i = 0; i < 30; i++) {
-    await new Promise((r) => setTimeout(r, 1000))
-
+  // Phase 1: Wait for import to start
+  let started = false
+  for (let i = 0; i < 15; i++) {
+    await new Promise((r) => setTimeout(r, 500))
     try {
       const res = await listmonkFetch('import/subscribers')
       if (!res.ok) continue
-
       const data = await res.json()
       const status = data.data
+      if (status?.status === 'importing') {
+        started = true
+        break
+      }
+      if (status?.status === 'finished') {
+        return {
+          imported: status.imported ?? undefined,
+          skipped: status.skipped ?? undefined,
+        }
+      }
+    } catch {
+      // Retry
+    }
+  }
 
-      if (!status || status.status === 'idle' || status.status === 'finished') {
+  if (!started) {
+    await new Promise((r) => setTimeout(r, 2000))
+    return { imported: undefined, skipped: undefined }
+  }
+
+  // Phase 2: Wait for import to finish
+  for (let i = 0; i < 120; i++) {
+    await new Promise((r) => setTimeout(r, 1000))
+    try {
+      const res = await listmonkFetch('import/subscribers')
+      if (!res.ok) continue
+      const data = await res.json()
+      const status = data.data
+      if (!status || status.status === 'none' || status.status === 'finished') {
         return {
           imported: status?.imported ?? undefined,
           skipped: status?.skipped ?? undefined,
         }
       }
-
       if (status.status === 'failed') {
         return {
           imported: 0,
@@ -141,13 +166,10 @@ async function pollImportStatus(): Promise<{
           errors: [status.log_file || 'Import failed on Listmonk side'],
         }
       }
-
-      // Still importing, keep polling
     } catch {
       // Retry
     }
   }
 
-  // Timed out but import is likely still running
   return { imported: undefined, skipped: undefined }
 }

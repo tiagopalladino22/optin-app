@@ -22,6 +22,7 @@ const navItems: NavItem[] = [
   { href: '/segments', label: 'Segments', icon: SegmentIcon, adminOnly: true },
   { href: '/publications', label: 'Publications', icon: PublicationsIcon, adminOnly: true },
   { href: '/automations', label: 'Automations', icon: AutomationsIcon, adminOnly: true },
+  { href: '/import-tracking', label: 'Import Tracking', icon: ImportTrackingIcon, adminOnly: true },
   { href: '/stats', label: 'Stats', icon: StatsIcon },
   { href: '/settings', label: 'Settings', icon: SettingsIcon, adminOnly: true },
 ]
@@ -147,6 +148,14 @@ function AutomationsIcon({ active }: { active?: boolean }) {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={active ? '#3a85c8' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </svg>
+  )
+}
+
+function ImportTrackingIcon({ active }: { active?: boolean }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={active ? '#3a85c8' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 3v18h18" /><path d="M7 16l4-4 4 4 5-5" />
     </svg>
   )
 }

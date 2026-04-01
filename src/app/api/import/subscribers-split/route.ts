@@ -139,23 +139,41 @@ function escapeCsvField(value: string): string {
 }
 
 async function waitForImport(): Promise<void> {
-  for (let i = 0; i < 60; i++) {
-    await new Promise((r) => setTimeout(r, 1000))
-
+  // Phase 1: Wait for import to actually start (status changes from 'none' to 'importing')
+  let started = false
+  for (let i = 0; i < 15; i++) {
+    await new Promise((r) => setTimeout(r, 500))
     try {
       const res = await listmonkFetch('import/subscribers')
       if (!res.ok) continue
-
       const data = await res.json()
       const status = data.data?.status
-
-      if (!status || status === 'none' || status === 'finished') {
-        return
+      if (status === 'importing') {
+        started = true
+        break
       }
+      if (status === 'finished') return // Finished already
+    } catch {
+      // Retry
+    }
+  }
 
-      if (status === 'failed') {
-        return
-      }
+  if (!started) {
+    // Give it one more second and check
+    await new Promise((r) => setTimeout(r, 2000))
+    return
+  }
+
+  // Phase 2: Wait for import to finish
+  for (let i = 0; i < 120; i++) {
+    await new Promise((r) => setTimeout(r, 1000))
+    try {
+      const res = await listmonkFetch('import/subscribers')
+      if (!res.ok) continue
+      const data = await res.json()
+      const status = data.data?.status
+      if (!status || status === 'none' || status === 'finished') return
+      if (status === 'failed') return
     } catch {
       // Retry
     }
