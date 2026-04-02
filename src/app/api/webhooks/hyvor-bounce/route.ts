@@ -6,21 +6,24 @@ import { NextRequest, NextResponse } from 'next/server'
 
 interface HyvorBouncePayload {
   event?: string
-  send: {
-    id: number
-    uuid: string
-    subject: string
-    from_address: string
-    headers: Record<string, string>
-  }
-  recipient: {
-    address: string
-    status: string
-  }
-  attempt: unknown | null
-  bounce: {
-    status: string // SMTP status code, e.g. "550"
-    text: string
+  payload: {
+    send: {
+      id: number
+      uuid: string
+      subject: string
+      from_address: string
+      headers: Record<string, string>
+    }
+    recipient: {
+      address: string
+      status: string
+    }
+    attempt: {
+      recipients: Array<{
+        smtp_code: number
+        smtp_message: string
+      }>
+    } | null
   }
 }
 
@@ -34,21 +37,8 @@ function verifySignature(body: string, signature: string, secret: string): boole
   }
 }
 
-function getBounceType(smtpStatus: string): 'hard' | 'soft' {
-  return smtpStatus.startsWith('5') ? 'hard' : 'soft'
-}
-
-// Listmonk includes the campaign UUID in email headers when sending via SMTP.
-// The exact header name depends on the Listmonk version — adjust if needed after
-// inspecting a real Hyvor webhook payload in your logs.
-function extractCampaignUuid(headers: Record<string, string>): string | null {
-  const candidates = [
-    headers['X-Campaign-UUID'],
-    headers['x-campaign-uuid'],
-    headers['X-Listmonk-Campaign'],
-    headers['x-listmonk-campaign'],
-  ]
-  return candidates.find(Boolean) ?? null
+function getBounceType(smtpCode: number): 'hard' | 'soft' {
+  return smtpCode >= 500 ? 'hard' : 'soft'
 }
 
 export async function POST(request: NextRequest) {
@@ -78,23 +68,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, skipped: true })
   }
 
-  // If no event field, fall back to checking that bounce data is present
-  if (!payload.bounce || !payload.recipient?.address) {
+  const { send, recipient, attempt } = payload.payload
+
+  if (!recipient?.address) {
     return NextResponse.json({ ok: true, skipped: true })
   }
 
-  const email = payload.recipient.address
-  const bounceType = getBounceType(payload.bounce.status)
-  const campaignUuid = extractCampaignUuid(payload.send?.headers ?? {})
-
-  if (!campaignUuid) {
-    // Log to help debug the header name in your specific Listmonk version
-    console.warn(
-      '[hyvor-bounce] Could not extract campaign_uuid from send headers.',
-      'Available headers:', Object.keys(payload.send?.headers ?? {}),
-      '— bounce will be recorded without campaign association.'
-    )
-  }
+  const email = recipient.address
+  const smtpCode = attempt?.recipients?.[0]?.smtp_code ?? 550
+  const smtpMessage = attempt?.recipients?.[0]?.smtp_message ?? ''
+  const bounceType = getBounceType(smtpCode)
 
   // Forward to Listmonk
   const listmonkUrl = process.env.LISTMONK_URL
@@ -106,19 +89,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  const listmonkBody: Record<string, string> = {
+  // Note: Listmonk does not include campaign UUID in SMTP headers,
+  // so bounces are recorded without campaign association.
+  const listmonkBody = {
     email,
     source: 'api',
     type: bounceType,
     meta: JSON.stringify({
-      smtp_status: payload.bounce.status,
-      bounce_text: payload.bounce.text,
-      hyvor_send_uuid: payload.send?.uuid,
+      smtp_code: smtpCode,
+      smtp_message: smtpMessage,
+      hyvor_send_uuid: send?.uuid,
     }),
-  }
-
-  if (campaignUuid) {
-    listmonkBody.campaign_uuid = campaignUuid
   }
 
   try {
