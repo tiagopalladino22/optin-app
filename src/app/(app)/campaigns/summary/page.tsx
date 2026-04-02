@@ -15,6 +15,7 @@ interface CampaignData {
   bounces: number
   uniqueOpens: number
   uniqueClicks: number
+  unsubs: number
   lists: { id: number; name: string }[]
   created_at: string
   started_at: string | null
@@ -71,6 +72,7 @@ function SummaryContent() {
           bounces: c.bounces || 0,
           uniqueOpens: uniqueMap[c.id]?.uniqueOpens ?? c.views ?? 0,
           uniqueClicks: uniqueMap[c.id]?.uniqueClicks ?? c.clicks ?? 0,
+          unsubs: uniqueMap[c.id]?.unsubs ?? 0,
           lists: c.lists || [],
           created_at: c.created_at,
           started_at: c.started_at,
@@ -96,6 +98,7 @@ function SummaryContent() {
       bounces: 0,
       uniqueOpens: 0,
       uniqueClicks: 0,
+      unsubs: 0,
     }
     for (const c of campaigns) {
       t.sent += c.sent
@@ -104,6 +107,7 @@ function SummaryContent() {
       t.bounces += c.bounces
       t.uniqueOpens += c.uniqueOpens
       t.uniqueClicks += c.uniqueClicks
+      t.unsubs += c.unsubs
     }
     return t
   }, [campaigns])
@@ -111,6 +115,7 @@ function SummaryContent() {
   const avgOpenRate = totals.sent > 0 ? ((totals.uniqueOpens / totals.sent) * 100).toFixed(1) : '0.0'
   const avgClickRate = totals.uniqueOpens > 0 ? ((totals.uniqueClicks / totals.uniqueOpens) * 100).toFixed(1) : '0.0'
   const bounceRate = totals.sent > 0 ? ((totals.bounces / totals.sent) * 100).toFixed(1) : '0.0'
+  const unsubRate = totals.sent > 0 ? ((totals.unsubs / totals.sent) * 100).toFixed(2) : '0.00'
 
   if (loading) {
     return (
@@ -156,7 +161,7 @@ function SummaryContent() {
         </div>
         <button
           onClick={() => {
-            const headers = ['Campaign', 'Subject', 'Sent', 'Unique Opens', 'Open Rate', 'Total Views', 'Unique Clicks', 'CTR', 'Total Clicks', 'Bounces', 'Bounce Rate', 'Lists', 'Date']
+            const headers = ['Campaign', 'Subject', 'Sent', 'Unique Opens', 'Open Rate', 'Total Views', 'Unique Clicks', 'CTR', 'Total Clicks', 'Unsubs', 'Unsub Rate', 'Bounces', 'Bounce Rate', 'Lists', 'Date']
             const rows = campaigns.map((c) => [
               `"${c.name}"`,
               `"${c.subject}"`,
@@ -167,6 +172,8 @@ function SummaryContent() {
               c.uniqueClicks,
               `${c.uniqueOpens > 0 ? ((c.uniqueClicks / c.uniqueOpens) * 100).toFixed(1) : '0.0'}%`,
               c.clicks,
+              c.unsubs,
+              `${c.sent > 0 ? ((c.unsubs / c.sent) * 100).toFixed(2) : '0.00'}%`,
               c.bounces,
               `${c.sent > 0 ? ((c.bounces / c.sent) * 100).toFixed(1) : '0.0'}%`,
               `"${c.lists.map((l) => l.name).join('; ')}"`,
@@ -178,6 +185,7 @@ function SummaryContent() {
               '"TOTAL"', '""',
               totals.sent, totals.uniqueOpens, `${avgOpenRate}%`, totals.views,
               totals.uniqueClicks, `${avgClickRate}%`, totals.clicks,
+              totals.unsubs, `${unsubRate}%`,
               totals.bounces, `${bounceRate}%`, '""', '""',
             ].join(','))
 
@@ -197,7 +205,7 @@ function SummaryContent() {
       </div>
 
       {/* Totals */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
         <SummaryCard label="Total Sent" value={totals.sent.toLocaleString()} />
         <SummaryCard
           label="Unique Opens"
@@ -211,6 +219,7 @@ function SummaryContent() {
           sub={`${totals.clicks.toLocaleString()} total`}
         />
         <SummaryCard label="Avg CTR" value={`${avgClickRate}%`} />
+        <SummaryCard label="Unsubs" value={totals.unsubs.toLocaleString()} sub={`${unsubRate}%`} />
         <SummaryCard label="Bounces" value={totals.bounces.toLocaleString()} />
         <SummaryCard label="Bounce Rate" value={`${bounceRate}%`} />
       </div>
@@ -230,6 +239,7 @@ function SummaryContent() {
                 <th className="text-right px-4 py-3 font-medium">Open %</th>
                 <th className="text-right px-4 py-3 font-medium">Unique Clicks</th>
                 <th className="text-right px-4 py-3 font-medium">CTR</th>
+                <th className="text-right px-4 py-3 font-medium">Unsubs</th>
                 <th className="text-right px-4 py-3 font-medium">Bounces</th>
                 <th className="text-left px-4 py-3 font-medium">Lists</th>
               </tr>
@@ -254,6 +264,7 @@ function SummaryContent() {
                     <td className="px-4 py-3 text-right text-accent font-medium tabular-nums">{openRate}%</td>
                     <td className="px-4 py-3 text-right text-navy tabular-nums">{c.uniqueClicks.toLocaleString()}</td>
                     <td className="px-4 py-3 text-right text-accent font-medium tabular-nums">{clickRate}%</td>
+                    <td className="px-4 py-3 text-right text-navy tabular-nums">{c.unsubs.toLocaleString()}</td>
                     <td className="px-4 py-3 text-right text-navy tabular-nums">{c.bounces.toLocaleString()}</td>
                     <td className="px-4 py-3 text-text-light text-xs">
                       {c.lists.map((l) => l.name).join(', ') || '—'}
@@ -270,6 +281,7 @@ function SummaryContent() {
                 <td className="px-4 py-3 text-right text-accent tabular-nums">{avgOpenRate}%</td>
                 <td className="px-4 py-3 text-right text-navy tabular-nums">{totals.uniqueClicks.toLocaleString()}</td>
                 <td className="px-4 py-3 text-right text-accent tabular-nums">{avgClickRate}%</td>
+                <td className="px-4 py-3 text-right text-navy tabular-nums">{totals.unsubs.toLocaleString()}</td>
                 <td className="px-4 py-3 text-right text-navy tabular-nums">{totals.bounces.toLocaleString()}</td>
                 <td className="px-4 py-3"></td>
               </tr>

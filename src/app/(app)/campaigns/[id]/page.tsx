@@ -24,6 +24,7 @@ interface CampaignDetail {
 interface UniqueStats {
   uniqueOpens: number
   uniqueClicks: number
+  unsubs: number
 }
 
 export default function CampaignDetailPage() {
@@ -127,8 +128,10 @@ export default function CampaignDetailPage() {
   const totalClicks = campaign.clicks || 0
   const uniqueOpens = uniqueStats?.uniqueOpens ?? totalViews
   const uniqueClicks = uniqueStats?.uniqueClicks ?? totalClicks
+  const unsubs = uniqueStats?.unsubs ?? 0
   const uniqueOpenRate = campaign.sent > 0 ? ((uniqueOpens / campaign.sent) * 100).toFixed(1) : '0.0'
   const uniqueClickRate = uniqueOpens > 0 ? ((uniqueClicks / uniqueOpens) * 100).toFixed(1) : '0.0'
+  const unsubRate = campaign.sent > 0 ? ((unsubs / campaign.sent) * 100).toFixed(2) : '0.00'
 
   return (
     <div className="space-y-6">
@@ -190,7 +193,7 @@ export default function CampaignDetailPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <StatCard label="Sent" value={campaign.sent?.toLocaleString() || '0'} />
         <StatCard
           label="Unique Opens"
@@ -201,6 +204,10 @@ export default function CampaignDetailPage() {
           label="Unique Clicks"
           value={`${uniqueClicks.toLocaleString()} (${uniqueClickRate}%)`}
           sub={`${totalClicks.toLocaleString()} total clicks`}
+        />
+        <StatCard
+          label="Unsubs"
+          value={`${unsubs.toLocaleString()} (${unsubRate}%)`}
         />
         <StatCard label="Bounces" value={campaign.bounces?.toLocaleString() || '0'} />
         <StatCard label="Bounce Rate" value={campaign.sent > 0 ? `${((campaign.bounces / campaign.sent) * 100).toFixed(1)}%` : '0.0%'} />

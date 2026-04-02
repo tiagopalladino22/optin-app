@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { listmonkFetch } from '@/lib/listmonk'
 
-// Cache unique stats for 60 seconds — these don't change often
-const cache = new Map<number, { uniqueOpens: number; uniqueClicks: number; expires: number }>()
+// Cache unique stats for 60 seconds
+const cache = new Map<number, { uniqueOpens: number; uniqueClicks: number; unsubs: number; expires: number }>()
 const CACHE_TTL = 60_000
 
 // GET /api/campaigns/unique-stats?ids=260,261,262
-// Returns unique opens and clicks per campaign
 export async function GET(request: NextRequest) {
   const session = await getSession()
   if (!session) {
@@ -24,33 +23,72 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'No valid campaign IDs' }, { status: 400 })
   }
 
-  const results: Record<number, { uniqueOpens: number; uniqueClicks: number }> = {}
+  const results: Record<number, { uniqueOpens: number; uniqueClicks: number; unsubs: number }> = {}
   const uncachedIds: number[] = []
   const now = Date.now()
 
-  // Check cache first
   for (const id of campaignIds) {
     const cached = cache.get(id)
     if (cached && now < cached.expires) {
-      results[id] = { uniqueOpens: cached.uniqueOpens, uniqueClicks: cached.uniqueClicks }
+      results[id] = { uniqueOpens: cached.uniqueOpens, uniqueClicks: cached.uniqueClicks, unsubs: cached.unsubs }
     } else {
       uncachedIds.push(id)
     }
   }
 
-  // Fetch uncached in parallel (limit concurrency to 5 at a time)
   if (uncachedIds.length > 0) {
+    // Fetch campaign details to get list IDs and send dates
+    const campaignDetails = await Promise.all(
+      uncachedIds.map(async (id) => {
+        try {
+          const res = await listmonkFetch(`campaigns/${id}`)
+          if (!res.ok) return { id, lists: [] as number[], sentAt: '' }
+          const data = await res.json()
+          const c = data.data
+          return {
+            id,
+            lists: (c.lists || []).map((l: { id: number }) => l.id),
+            sentAt: c.started_at || c.send_at || c.created_at || '',
+          }
+        } catch {
+          return { id, lists: [] as number[], sentAt: '' }
+        }
+      })
+    )
+
+    // Sort campaigns by send date to determine time windows
+    const sorted = [...campaignDetails].sort(
+      (a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime()
+    )
+
+    // Build time windows: each campaign's unsubs are counted from its send date
+    // until the next campaign's send date (or now if it's the most recent)
+    const timeWindows: Record<number, { from: string; to: string }> = {}
+    for (let i = 0; i < sorted.length; i++) {
+      const current = sorted[i]
+      const next = sorted[i + 1]
+      timeWindows[current.id] = {
+        from: current.sentAt,
+        to: next ? next.sentAt : new Date().toISOString(),
+      }
+    }
+
     const batchSize = 5
     for (let i = 0; i < uncachedIds.length; i += batchSize) {
       const batch = uncachedIds.slice(i, i + batchSize)
       await Promise.all(
         batch.map(async (id) => {
-          const [opens, clicks] = await Promise.all([
+          const detail = campaignDetails.find((d) => d.id === id)
+          const window = timeWindows[id]
+
+          const [opens, clicks, unsubs] = await Promise.all([
             getUniqueCount('campaign_views', id),
             getUniqueCount('link_clicks', id),
+            detail && window ? getUnsubCount(detail.lists, window.from, window.to) : Promise.resolve(0),
           ])
-          results[id] = { uniqueOpens: opens, uniqueClicks: clicks }
-          cache.set(id, { uniqueOpens: opens, uniqueClicks: clicks, expires: now + CACHE_TTL })
+
+          results[id] = { uniqueOpens: opens, uniqueClicks: clicks, unsubs }
+          cache.set(id, { uniqueOpens: opens, uniqueClicks: clicks, unsubs, expires: now + CACHE_TTL })
         })
       )
     }
@@ -69,6 +107,24 @@ export async function GET(request: NextRequest) {
 async function getUniqueCount(table: string, campaignId: number): Promise<number> {
   try {
     const query = `subscribers.id IN (SELECT subscriber_id FROM ${table} WHERE campaign_id=${campaignId})`
+    const res = await listmonkFetch(
+      `subscribers?per_page=0&query=${encodeURIComponent(query)}`
+    )
+    if (!res.ok) return 0
+    const data = await res.json()
+    return data.data?.total ?? 0
+  } catch {
+    return 0
+  }
+}
+
+async function getUnsubCount(listIds: number[], from: string, to: string): Promise<number> {
+  if (listIds.length === 0 || !from) return 0
+  try {
+    const listFilter = listIds.length === 1
+      ? `list_id = ${listIds[0]}`
+      : `list_id IN (${listIds.join(',')})`
+    const query = `subscribers.id IN (SELECT subscriber_id FROM subscriber_lists WHERE ${listFilter} AND status = 'unsubscribed' AND updated_at >= '${from}' AND updated_at < '${to}')`
     const res = await listmonkFetch(
       `subscribers?per_page=0&query=${encodeURIComponent(query)}`
     )
