@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { list_id, list_name, publication_code, import_date, imported_count } = body
 
-    if (!list_id || !list_name || !imported_count) {
+    if (!list_id || !list_name || imported_count === undefined || imported_count === null) {
       return NextResponse.json({ error: 'list_id, list_name, and imported_count are required' }, { status: 400 })
     }
 
@@ -54,10 +54,14 @@ export async function POST(req: NextRequest) {
       .select()
       .single()
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      console.error('Import tracking insert error:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
     return NextResponse.json(data)
-  } catch {
+  } catch (err) {
+    console.error('Import tracking POST error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

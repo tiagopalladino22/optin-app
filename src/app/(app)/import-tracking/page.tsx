@@ -24,6 +24,12 @@ interface ListmonkList {
   subscriber_count?: number
 }
 
+interface Client {
+  id: string
+  name: string
+  listmonk_url: string | null
+}
+
 export default function ImportTrackingPage() {
   const [records, setRecords] = useState<TrackingRecord[]>([])
   const [lists, setLists] = useState<ListmonkList[]>([])
@@ -34,12 +40,12 @@ export default function ImportTrackingPage() {
   const [success, setSuccess] = useState('')
   const [listSearch, setListSearch] = useState('')
 
+  // Client selector
+  const [clients, setClients] = useState<Client[]>([])
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
+
   // Form state
-  const [selectedListId, setSelectedListId] = useState<number | null>(null)
-  const [selectedListName, setSelectedListName] = useState('')
-  const [pubCode, setPubCode] = useState('')
-  const [importDate, setImportDate] = useState(new Date().toISOString().split('T')[0])
-  const [importedCount, setImportedCount] = useState('')
+  const [selectedLists, setSelectedLists] = useState<Set<number>>(new Set())
   const [saving, setSaving] = useState(false)
 
   const fetchRecords = useCallback(async () => {
@@ -55,97 +61,147 @@ export default function ImportTrackingPage() {
     }
   }, [])
 
-  const fetchLists = useCallback(async () => {
+  const fetchLists = useCallback(async (clientId?: string | null) => {
     try {
-      const allLists: ListmonkList[] = []
-      let page = 1
-      while (true) {
-        const res = await fetch(`/api/listmonk/lists?per_page=100&page=${page}`)
-        if (!res.ok) break
+      if (clientId) {
+        const res = await fetch(`/api/settings/client-lists?client_id=${clientId}`)
+        if (!res.ok) return
         const data = await res.json()
-        const results = data?.data?.results || data?.results || []
-        allLists.push(...results)
-        if (results.length < 100) break
-        page++
+        setLists(data.data || [])
+      } else {
+        const allLists: ListmonkList[] = []
+        let page = 1
+        while (true) {
+          const res = await fetch(`/api/listmonk/lists?per_page=100&page=${page}`)
+          if (!res.ok) break
+          const data = await res.json()
+          const results = data?.data?.results || data?.results || []
+          allLists.push(...results)
+          if (results.length < 100) break
+          page++
+        }
+        setLists(allLists)
       }
-      setLists(allLists)
     } catch {
       // Lists fetch is optional
     }
   }, [])
 
+  // Fetch clients with their own Listmonk instance
+  useEffect(() => {
+    fetch('/api/settings/clients')
+      .then((res) => res.json())
+      .then((data) => {
+        const clientList = Array.isArray(data) ? data : data.data || []
+        setClients(clientList.filter((c: Client) => c.listmonk_url))
+      })
+      .catch(() => {})
+  }, [])
+
+  // Re-fetch lists when client changes
+  useEffect(() => {
+    setLists([])
+    setSelectedLists(new Set())
+    fetchLists(selectedClientId)
+  }, [selectedClientId, fetchLists])
+
   useEffect(() => {
     fetchRecords()
-    fetchLists()
-  }, [fetchRecords, fetchLists])
+  }, [fetchRecords])
 
-  function handleListSelect(listId: number) {
-    const list = lists.find((l) => l.id === listId)
-    if (list) {
-      setSelectedListId(listId)
-      setSelectedListName(list.name)
-      setImportedCount(String(list.subscriber_count || ''))
-
-      // Auto-detect publication code (first 3 uppercase letters before " - ")
-      const match = list.name.match(/^([A-Z]{3})\s*-/)
-      if (match) {
-        setPubCode(match[1])
+  function toggleListSelection(listId: number) {
+    setSelectedLists((prev) => {
+      const next = new Set(prev)
+      if (next.has(listId)) {
+        next.delete(listId)
       } else {
-        setPubCode('')
+        next.add(listId)
       }
+      return next
+    })
+  }
 
-      // Try to detect date from list name
-      const dateMatch = list.name.match(/(\d{1,2}\/\d{1,2}\/\d{4})/)
-      if (dateMatch) {
-        const parts = dateMatch[1].split('/')
-        const d = new Date(`${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`)
-        if (!isNaN(d.getTime())) {
-          setImportDate(d.toISOString().split('T')[0])
-        }
+  function selectAllFiltered() {
+    setSelectedLists((prev) => {
+      const next = new Set(prev)
+      filteredLists.forEach((l) => next.add(l.id))
+      return next
+    })
+  }
+
+  function deselectAll() {
+    setSelectedLists(new Set())
+  }
+
+  function detectPubCode(name: string): string | null {
+    const match = name.match(/^([A-Z]{3})\s*-/)
+    return match ? match[1] : null
+  }
+
+  function detectImportDate(name: string): string {
+    const dateMatch = name.match(/(\d{1,2}\/\d{1,2}\/\d{4})/)
+    if (dateMatch) {
+      const parts = dateMatch[1].split('/')
+      const d = new Date(`${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`)
+      if (!isNaN(d.getTime())) {
+        return d.toISOString().split('T')[0]
       }
     }
+    return new Date().toISOString().split('T')[0]
   }
 
   async function handleSave() {
-    if (!selectedListId || !selectedListName || !importedCount) {
-      setError('Please fill all required fields')
+    if (selectedLists.size === 0) {
+      setError('Select at least one list')
       return
     }
 
     setSaving(true)
     setError('')
-    try {
-      const res = await fetch('/api/import-tracking', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          list_id: selectedListId,
-          list_name: selectedListName,
-          publication_code: pubCode || null,
-          import_date: importDate,
-          imported_count: parseInt(importedCount),
-        }),
-      })
+    let added = 0
+    const errors: string[] = []
 
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed to create')
+    for (const listId of Array.from(selectedLists)) {
+      const list = lists.find((l) => l.id === listId)
+      if (!list) continue
+
+      try {
+        const res = await fetch('/api/import-tracking', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            list_id: list.id,
+            list_name: list.name,
+            publication_code: detectPubCode(list.name),
+            import_date: detectImportDate(list.name),
+            imported_count: list.subscriber_count || 0,
+          }),
+        })
+
+        if (!res.ok) {
+          const data = await res.json()
+          errors.push(`${list.name}: ${data.error || 'Failed'}`)
+        } else {
+          added++
+        }
+      } catch {
+        errors.push(`${list.name}: Network error`)
       }
-
-      setSuccess('Tracking started!')
-      setShowForm(false)
-      setSelectedListId(null)
-      setSelectedListName('')
-      setPubCode('')
-      setImportedCount('')
-      setListSearch('')
-      fetchRecords()
-      setTimeout(() => setSuccess(''), 3000)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create tracking')
-    } finally {
-      setSaving(false)
     }
+
+    if (errors.length > 0) {
+      setError(`${errors.length} failed: ${errors[0]}`)
+    }
+    if (added > 0) {
+      setSuccess(`${added} list${added > 1 ? 's' : ''} added to tracking!`)
+      setTimeout(() => setSuccess(''), 3000)
+    }
+
+    setShowForm(false)
+    setSelectedLists(new Set())
+    setListSearch('')
+    fetchRecords()
+    setSaving(false)
   }
 
   async function handleDelete(id: string) {
@@ -175,9 +231,27 @@ export default function ImportTrackingPage() {
     }
   }
 
+  const trackedListIds = new Set(records.map((r) => r.list_id))
   const filteredLists = lists.filter((l) =>
-    l.name.toLowerCase().includes(listSearch.toLowerCase())
+    !trackedListIds.has(l.id) && l.name.toLowerCase().includes(listSearch.toLowerCase())
   )
+
+  // Pub code filter for the tracking table
+  const [activePubFilter, setActivePubFilter] = useState<string | null>(null)
+  const [tableSearch, setTableSearch] = useState('')
+
+  const pubCodes = Array.from(
+    new Set(records.map((r) => r.publication_code).filter(Boolean))
+  ).sort() as string[]
+
+  const filteredRecords = records.filter((r) => {
+    if (activePubFilter && r.publication_code !== activePubFilter) return false
+    if (tableSearch) {
+      const q = tableSearch.toLowerCase()
+      return r.list_name.toLowerCase().includes(q) || (r.publication_code || '').toLowerCase().includes(q)
+    }
+    return true
+  })
 
   if (loading) {
     return (
@@ -226,88 +300,132 @@ export default function ImportTrackingPage() {
         <div className="bg-white rounded-xl border border-border-custom p-6 space-y-4">
           <h3 className="font-display text-xl tracking-wide text-navy uppercase">Track New Import</h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {clients.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-text-mid mb-1">Select List</label>
-              <input
-                type="text"
-                placeholder="Search lists..."
-                value={listSearch}
-                onChange={(e) => setListSearch(e.target.value)}
-                className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-sm"
-              />
-              {listSearch && (
-                <div className="mt-1 max-h-48 overflow-y-auto border border-border-custom rounded-lg bg-white">
-                  {filteredLists.slice(0, 20).map((list) => (
-                    <button
-                      key={list.id}
-                      onClick={() => {
-                        handleListSelect(list.id)
-                        setListSearch('')
-                      }}
-                      className={`w-full text-left px-3 py-2 text-sm hover:bg-offwhite transition-colors ${
-                        selectedListId === list.id ? 'bg-accent-wash text-accent' : 'text-text-primary'
-                      }`}
-                    >
+              <label className="block text-sm font-medium text-text-mid mb-1">Listmonk Instance</label>
+              <select
+                value={selectedClientId || ''}
+                onChange={(e) => setSelectedClientId(e.target.value || null)}
+                className="w-full border border-border-custom rounded-lg px-3 py-2 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+              >
+                <option value="">Default (optin150.com)</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} — {c.listmonk_url}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-text-mid">Select Lists</label>
+              <div className="flex gap-3 text-xs">
+                <button onClick={selectAllFiltered} className="text-accent hover:text-accent-bright">
+                  Select all{listSearch ? ' filtered' : ''}
+                </button>
+                {selectedLists.size > 0 && (
+                  <button onClick={deselectAll} className="text-text-light hover:text-text-mid">
+                    Deselect all
+                  </button>
+                )}
+              </div>
+            </div>
+            <input
+              type="text"
+              placeholder="Search lists..."
+              value={listSearch}
+              onChange={(e) => setListSearch(e.target.value)}
+              className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-sm mb-2"
+            />
+            <div className="max-h-64 overflow-y-auto border border-border-custom rounded-lg bg-white">
+              {filteredLists.length === 0 ? (
+                <p className="px-3 py-2 text-sm text-text-light">No lists found</p>
+              ) : (
+                filteredLists.map((list) => (
+                  <label
+                    key={list.id}
+                    className={`flex items-center gap-3 px-3 py-2 text-sm cursor-pointer hover:bg-offwhite transition-colors ${
+                      selectedLists.has(list.id) ? 'bg-accent-wash' : ''
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedLists.has(list.id)}
+                      onChange={() => toggleListSelection(list.id)}
+                      className="rounded border-border-custom text-accent focus:ring-accent"
+                    />
+                    <span className={selectedLists.has(list.id) ? 'text-accent font-medium' : 'text-text-primary'}>
                       {list.name}
-                      {list.subscriber_count !== undefined && (
-                        <span className="text-text-light ml-2">({list.subscriber_count})</span>
-                      )}
-                    </button>
-                  ))}
-                  {filteredLists.length === 0 && (
-                    <p className="px-3 py-2 text-sm text-text-light">No lists found</p>
-                  )}
-                </div>
-              )}
-              {selectedListName && (
-                <p className="mt-1 text-sm text-accent font-medium">{selectedListName}</p>
+                    </span>
+                    {list.subscriber_count !== undefined && (
+                      <span className="text-text-light ml-auto text-xs">{list.subscriber_count}</span>
+                    )}
+                  </label>
+                ))
               )}
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-text-mid mb-1">Publication Code</label>
-              <input
-                type="text"
-                value={pubCode}
-                onChange={(e) => setPubCode(e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3))}
-                placeholder="e.g. EIT"
-                maxLength={3}
-                className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-sm font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-text-mid mb-1">Import Date</label>
-              <input
-                type="date"
-                value={importDate}
-                onChange={(e) => setImportDate(e.target.value)}
-                className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-sm"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-text-mid mb-1">Imported Count</label>
-              <input
-                type="number"
-                value={importedCount}
-                onChange={(e) => setImportedCount(e.target.value)}
-                placeholder="Number of subscribers"
-                className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-sm"
-              />
-            </div>
+            {selectedLists.size > 0 && (
+              <p className="mt-2 text-sm text-accent font-medium">
+                {selectedLists.size} list{selectedLists.size > 1 ? 's' : ''} selected
+              </p>
+            )}
+            <p className="mt-1 text-xs text-text-light">
+              Publication code, import date, and subscriber count are auto-detected from list names.
+            </p>
           </div>
 
           <div className="flex justify-end">
             <button
               onClick={handleSave}
-              disabled={saving || !selectedListId || !importedCount}
+              disabled={saving || selectedLists.size === 0}
               className="px-5 py-2 bg-accent text-white hover:bg-accent-bright rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
             >
-              {saving ? 'Starting...' : 'Start Tracking'}
+              {saving ? 'Adding...' : `Track ${selectedLists.size || ''} List${selectedLists.size !== 1 ? 's' : ''}`}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Pub code filter tags + search */}
+      {records.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setActivePubFilter(null)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                activePubFilter === null
+                  ? 'bg-navy text-white'
+                  : 'bg-offwhite text-text-mid hover:bg-border-custom'
+              }`}
+            >
+              All ({records.length})
+            </button>
+            {pubCodes.map((code) => {
+              const count = records.filter((r) => r.publication_code === code).length
+              return (
+                <button
+                  key={code}
+                  onClick={() => setActivePubFilter(activePubFilter === code ? null : code)}
+                  className={`px-3 py-1.5 text-xs font-mono font-medium rounded-lg transition-colors ${
+                    activePubFilter === code
+                      ? 'bg-accent text-white'
+                      : 'bg-accent-wash text-accent hover:bg-accent/20'
+                  }`}
+                >
+                  {code} ({count})
+                </button>
+              )
+            })}
+          </div>
+          <input
+            type="text"
+            placeholder="Search lists..."
+            value={tableSearch}
+            onChange={(e) => setTableSearch(e.target.value)}
+            className="ml-auto px-3 py-1.5 border border-border-custom rounded-lg text-sm text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent w-56"
+          />
         </div>
       )}
 
@@ -329,14 +447,16 @@ export default function ImportTrackingPage() {
               </tr>
             </thead>
             <tbody>
-              {records.length === 0 ? (
+              {filteredRecords.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="px-4 py-8 text-center text-text-light">
-                    No tracked imports yet. Click &quot;Add Tracking&quot; to start.
+                    {records.length === 0
+                      ? 'No tracked imports yet. Click "Add Tracking" to start.'
+                      : 'No matching records.'}
                   </td>
                 </tr>
               ) : (
-                records.map((r) => (
+                filteredRecords.map((r) => (
                   <tr key={r.id} className="border-b border-border-custom last:border-0 hover:bg-offwhite/50 transition-colors">
                     <td className="px-4 py-3">
                       <p className="font-medium text-text-primary">{r.list_name}</p>

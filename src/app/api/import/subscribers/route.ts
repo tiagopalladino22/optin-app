@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { listmonkFetch } from '@/lib/listmonk'
+import { listmonkFetch, createClientListmonkFetch } from '@/lib/listmonk'
 import { createServiceRoleClient } from '@/lib/supabase-server'
 
 interface SubscriberPayload {
@@ -15,9 +15,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { listId, subscribers } = (await request.json()) as {
+  const { listId, subscribers, clientId } = (await request.json()) as {
     listId: number
     subscribers: SubscriberPayload[]
+    clientId?: string
+  }
+
+  // If clientId is provided, use that client's Listmonk instance
+  let fetchFn = listmonkFetch
+  if (clientId) {
+    const supabaseClient = await createServiceRoleClient()
+    const { data: client } = await supabaseClient
+      .from('clients')
+      .select('listmonk_url, listmonk_username, listmonk_password')
+      .eq('id', clientId)
+      .single()
+    if (client?.listmonk_url && client?.listmonk_username && client?.listmonk_password) {
+      fetchFn = createClientListmonkFetch({
+        url: client.listmonk_url,
+        username: client.listmonk_username,
+        password: client.listmonk_password,
+      })
+    }
   }
 
   if (!listId || !subscribers?.length) {
@@ -73,7 +92,7 @@ export async function POST(request: NextRequest) {
     }))
     formData.append('file', new Blob([csvData], { type: 'text/csv' }), 'import.csv')
 
-    const res = await listmonkFetch('import/subscribers', {
+    const res = await fetchFn('import/subscribers', {
       method: 'POST',
       body: formData,
       headers: {}, // Let fetch set the multipart Content-Type
@@ -88,7 +107,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Listmonk processes the import asynchronously — poll for status
-    const result = await pollImportStatus()
+    const result = await pollImportStatus(fetchFn)
 
     return NextResponse.json({
       imported: result.imported ?? validSubscribers.length,
@@ -111,7 +130,7 @@ function escapeCsvField(value: string): string {
   return value
 }
 
-async function pollImportStatus(): Promise<{
+async function pollImportStatus(fetchFn: typeof listmonkFetch): Promise<{
   imported?: number
   skipped?: number
   errors?: string[]
@@ -121,7 +140,7 @@ async function pollImportStatus(): Promise<{
   for (let i = 0; i < 15; i++) {
     await new Promise((r) => setTimeout(r, 500))
     try {
-      const res = await listmonkFetch('import/subscribers')
+      const res = await fetchFn('import/subscribers')
       if (!res.ok) continue
       const data = await res.json()
       const status = data.data
@@ -149,7 +168,7 @@ async function pollImportStatus(): Promise<{
   for (let i = 0; i < 120; i++) {
     await new Promise((r) => setTimeout(r, 1000))
     try {
-      const res = await listmonkFetch('import/subscribers')
+      const res = await fetchFn('import/subscribers')
       if (!res.ok) continue
       const data = await res.json()
       const status = data.data

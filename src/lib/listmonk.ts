@@ -40,6 +40,46 @@ export async function listmonkFetch(
   }
 }
 
+// Create a listmonkFetch function for a specific client's Listmonk instance
+export function createClientListmonkFetch(config: {
+  url: string
+  username: string
+  password: string
+}) {
+  const baseUrl = config.url.replace(/\/+$/, '')
+  const credentials = Buffer.from(`${config.username}:${config.password}`).toString('base64')
+
+  return async function clientListmonkFetch(
+    path: string,
+    options: RequestInit = {}
+  ): Promise<Response> {
+    const url = `${baseUrl}/api/${path}`
+    const headers: Record<string, string> = {
+      Authorization: `Basic ${credentials}`,
+    }
+
+    if (!(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json'
+    }
+
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 60_000)
+
+    try {
+      return await fetch(url, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          ...headers,
+          ...options.headers,
+        },
+      })
+    } finally {
+      clearTimeout(timeout)
+    }
+  }
+}
+
 // Filter Listmonk response data to only include resources owned by the client
 export function filterToClientScope<T extends { id?: number }>(
   data: T[],

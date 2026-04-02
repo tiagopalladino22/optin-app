@@ -10,6 +10,7 @@ interface ListOption {
 
 interface CsvImportProps {
   listId?: number
+  clientId?: string
 }
 
 type Step = 'upload' | 'map' | 'split' | 'preview' | 'importing' | 'done'
@@ -98,7 +99,7 @@ function generateId() {
   return Math.random().toString(36).slice(2, 9)
 }
 
-export default function CsvImport({ listId }: CsvImportProps) {
+export default function CsvImport({ listId, clientId }: CsvImportProps) {
   const [step, setStep] = useState<Step>('upload')
   const [headers, setHeaders] = useState<string[]>([])
   const [rows, setRows] = useState<string[][]>([])
@@ -119,11 +120,17 @@ export default function CsvImport({ listId }: CsvImportProps) {
 
   useEffect(() => {
     if (!listId) {
-      fetch('/api/listmonk/lists?per_page=100')
+      const url = clientId
+        ? `/api/settings/client-lists?client_id=${clientId}`
+        : '/api/listmonk/lists?per_page=100'
+      fetch(url)
         .then((res) => res.json())
         .then((data) => {
+          const results = clientId
+            ? (data.data || [])
+            : (data.data?.results || [])
           setAvailableLists(
-            (data.data?.results || []).map((l: ListOption) => ({
+            results.map((l: ListOption) => ({
               id: l.id,
               name: l.name,
               subscriber_count: l.subscriber_count,
@@ -132,7 +139,7 @@ export default function CsvImport({ listId }: CsvImportProps) {
         })
         .catch(() => {})
     }
-  }, [listId])
+  }, [listId, clientId])
 
   const filteredAvailableLists = useMemo(() => {
     if (!listSearchQuery.trim()) return availableLists
@@ -317,6 +324,7 @@ export default function CsvImport({ listId }: CsvImportProps) {
           body: JSON.stringify({
             listId: targetListId,
             subscribers: validSubscribers,
+            clientId: clientId || undefined,
           }),
         })
 
@@ -335,6 +343,7 @@ export default function CsvImport({ listId }: CsvImportProps) {
               name: s.name.trim(),
               count: s.count,
             })),
+            clientId: clientId || undefined,
           }),
         })
 

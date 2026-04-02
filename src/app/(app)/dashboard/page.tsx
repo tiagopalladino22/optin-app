@@ -1,13 +1,18 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import SubscriberGrowthChart from '@/components/stats/SubscriberGrowthChart'
 import { useData } from '@/lib/DataProvider'
+
+type DateRange = '7d' | '14d' | '30d' | 'all' | 'custom'
 
 export default function DashboardPage() {
   const { lists, campaigns, listsLoading, campaignsLoading, userEmail } = useData()
   const [avgOpenRate, setAvgOpenRate] = useState<number | null>(null)
   const [avgClickRate, setAvgClickRate] = useState<number | null>(null)
+  const [dateRange, setDateRange] = useState<DateRange>('30d')
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo, setCustomTo] = useState('')
 
   const totalSubscribers = useMemo(
     () => lists.reduce((sum, l) => sum + (l.subscriber_count || 0), 0),
@@ -19,7 +24,32 @@ export default function DashboardPage() {
     [campaigns]
   )
 
-  const recentCampaigns = useMemo(() => campaigns.slice(0, 5), [campaigns])
+  // Filter campaigns by date range
+  const filteredCampaigns = useMemo(() => {
+    if (dateRange === 'all') return sentCampaigns
+
+    const now = new Date()
+    let fromDate: Date
+
+    if (dateRange === 'custom') {
+      if (!customFrom) return sentCampaigns
+      fromDate = new Date(customFrom)
+      const toDate = customTo ? new Date(customTo + 'T23:59:59') : now
+      return sentCampaigns.filter((c) => {
+        const d = new Date(c.started_at || c.created_at)
+        return d >= fromDate && d <= toDate
+      })
+    }
+
+    const days = dateRange === '7d' ? 7 : dateRange === '14d' ? 14 : 30
+    fromDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
+    return sentCampaigns.filter((c) => {
+      const d = new Date(c.started_at || c.created_at)
+      return d >= fromDate
+    })
+  }, [sentCampaigns, dateRange, customFrom, customTo])
+
+  const recentCampaigns = useMemo(() => filteredCampaigns.slice(0, 5), [filteredCampaigns])
 
   const growthData = useMemo(() => {
     const sorted = [...lists].sort(
@@ -38,52 +68,58 @@ export default function DashboardPage() {
     })
   }, [lists])
 
-  // Load unique stats in background after campaigns are available
-  useEffect(() => {
-    if (campaignsLoading || sentCampaigns.length === 0) return
-
-    async function loadUniqueStats() {
-      try {
-        const recent = sentCampaigns.slice(0, 10)
-
-        // Fetch sent counts in parallel
-        const sentCounts = await Promise.all(
-          recent.map((c) =>
-            fetch(`/api/listmonk/campaigns/${c.id}`)
-              .then((r) => r.json())
-              .then((d) => d.data?.sent || 0)
-              .catch(() => 0)
-          )
-        )
-        const totalSent = sentCounts.reduce((sum, s) => sum + s, 0)
-
-        // Fetch unique stats
-        const ids = recent.map((c) => c.id).join(',')
-        const uniqueRes = await fetch(`/api/campaigns/unique-stats?ids=${ids}`)
-        const uniqueData = await uniqueRes.json()
-
-        let totalUniqueOpens = 0
-        let totalUniqueClicks = 0
-        if (uniqueData.data) {
-          for (const campaign of recent) {
-            const s = uniqueData.data[campaign.id]
-            if (s) {
-              totalUniqueOpens += s.uniqueOpens
-              totalUniqueClicks += s.uniqueClicks
-            }
-          }
-        }
-
-        setAvgOpenRate(totalSent > 0 ? (totalUniqueOpens / totalSent) * 100 : 0)
-        setAvgClickRate(totalUniqueOpens > 0 ? (totalUniqueClicks / totalUniqueOpens) * 100 : 0)
-      } catch {
-        setAvgOpenRate(0)
-        setAvgClickRate(0)
-      }
+  const loadUniqueStats = useCallback(async () => {
+    if (filteredCampaigns.length === 0) {
+      setAvgOpenRate(0)
+      setAvgClickRate(0)
+      return
     }
 
+    try {
+      setAvgOpenRate(null)
+      setAvgClickRate(null)
+
+      // Fetch sent counts in parallel
+      const sentCounts = await Promise.all(
+        filteredCampaigns.map((c) =>
+          fetch(`/api/listmonk/campaigns/${c.id}`)
+            .then((r) => r.json())
+            .then((d) => d.data?.sent || 0)
+            .catch(() => 0)
+        )
+      )
+      const totalSent = sentCounts.reduce((sum, s) => sum + s, 0)
+
+      // Fetch unique stats
+      const ids = filteredCampaigns.map((c) => c.id).join(',')
+      const uniqueRes = await fetch(`/api/campaigns/unique-stats?ids=${ids}`)
+      const uniqueData = await uniqueRes.json()
+
+      let totalUniqueOpens = 0
+      let totalUniqueClicks = 0
+      if (uniqueData.data) {
+        for (const campaign of filteredCampaigns) {
+          const s = uniqueData.data[campaign.id]
+          if (s) {
+            totalUniqueOpens += s.uniqueOpens
+            totalUniqueClicks += s.uniqueClicks
+          }
+        }
+      }
+
+      setAvgOpenRate(totalSent > 0 ? (totalUniqueOpens / totalSent) * 100 : 0)
+      setAvgClickRate(totalUniqueOpens > 0 ? (totalUniqueClicks / totalUniqueOpens) * 100 : 0)
+    } catch {
+      setAvgOpenRate(0)
+      setAvgClickRate(0)
+    }
+  }, [filteredCampaigns])
+
+  // Reload stats when filtered campaigns change
+  useEffect(() => {
+    if (campaignsLoading) return
     loadUniqueStats()
-  }, [campaignsLoading, sentCampaigns])
+  }, [campaignsLoading, loadUniqueStats])
 
   const loading = listsLoading || campaignsLoading
 
@@ -109,11 +145,56 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="font-display text-3xl tracking-wide text-navy uppercase">Hey {userEmail}</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="font-display text-3xl tracking-wide text-navy uppercase">Hey {userEmail}</h1>
+      </div>
+
+      {/* Date range selector */}
+      <div className="flex flex-wrap items-center gap-2">
+        {([
+          ['7d', '7 Days'],
+          ['14d', '14 Days'],
+          ['30d', '30 Days'],
+          ['all', 'All Time'],
+          ['custom', 'Custom'],
+        ] as [DateRange, string][]).map(([value, label]) => (
+          <button
+            key={value}
+            onClick={() => setDateRange(value)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+              dateRange === value
+                ? 'bg-accent text-white'
+                : 'bg-offwhite text-text-mid hover:bg-border-custom'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+        {dateRange === 'custom' && (
+          <div className="flex items-center gap-2 ml-2">
+            <input
+              type="date"
+              value={customFrom}
+              onChange={(e) => setCustomFrom(e.target.value)}
+              className="px-2 py-1 border border-border-custom rounded-lg text-xs text-navy focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+            />
+            <span className="text-text-light text-xs">to</span>
+            <input
+              type="date"
+              value={customTo}
+              onChange={(e) => setCustomTo(e.target.value)}
+              className="px-2 py-1 border border-border-custom rounded-lg text-xs text-navy focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+            />
+          </div>
+        )}
+        <span className="text-xs text-text-light ml-2">
+          {filteredCampaigns.length} campaign{filteredCampaigns.length !== 1 ? 's' : ''}
+        </span>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Total Subscribers" value={totalSubscribers.toLocaleString()} />
-        <StatCard label="Campaigns Sent" value={sentCampaigns.length.toString()} />
+        <StatCard label="Campaigns Sent" value={filteredCampaigns.length.toString()} />
         <StatCard
           label="Avg Open Rate"
           value={avgOpenRate !== null ? `${avgOpenRate.toFixed(1)}%` : null}
@@ -132,7 +213,7 @@ export default function DashboardPage() {
       <div>
         <h2 className="font-display text-xl tracking-wide text-navy uppercase mb-3">Recent Campaigns</h2>
         {recentCampaigns.length === 0 ? (
-          <p className="text-sm text-text-mid">No campaigns yet.</p>
+          <p className="text-sm text-text-mid">No campaigns in this period.</p>
         ) : (
           <div className="bg-white rounded-xl border border-border-custom overflow-hidden">
             <table className="w-full text-sm">

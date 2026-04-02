@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase-server'
-import { listmonkFetch } from '@/lib/listmonk'
+import { listmonkFetch, createClientListmonkFetch } from '@/lib/listmonk'
+
+type FetchFn = (path: string, options?: RequestInit) => Promise<Response>
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
@@ -24,8 +26,31 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: 'No records to track', results: [] })
   }
 
+  const clientFetchCache: Record<string, FetchFn> = {}
+
   for (const record of records) {
     try {
+      let fetchFn: FetchFn = listmonkFetch
+      if (record.client_id) {
+        if (!clientFetchCache[record.client_id]) {
+          const { data: client } = await supabase
+            .from('clients')
+            .select('listmonk_url, listmonk_username, listmonk_password')
+            .eq('id', record.client_id)
+            .single()
+          if (client?.listmonk_url && client?.listmonk_username && client?.listmonk_password) {
+            clientFetchCache[record.client_id] = createClientListmonkFetch({
+              url: client.listmonk_url,
+              username: client.listmonk_username,
+              password: client.listmonk_password,
+            })
+          }
+        }
+        if (clientFetchCache[record.client_id]) {
+          fetchFn = clientFetchCache[record.client_id]
+        }
+      }
+
       const importDate = new Date(record.import_date)
       const now = new Date()
       const daysSinceImport = Math.floor(
@@ -36,33 +61,24 @@ export async function GET(request: NextRequest) {
 
       if (week >= 1 && week <= 4) {
         const weekColumn = `week${week}_opens`
-        if (record[weekColumn] === null || record[weekColumn] === undefined) {
-          const uniqueOpens = await getUniqueOpens(listId)
-
-          await supabase
-            .from('import_tracking')
-            .update({ [weekColumn]: uniqueOpens, updated_at: new Date().toISOString() })
-            .eq('id', record.id)
-
-          results.push({ id: record.id, list_id: listId, week, status: `updated ${weekColumn}` })
-        } else {
-          results.push({ id: record.id, list_id: listId, week, status: 'already recorded' })
-        }
+        const uniqueOpens = await getUniqueOpens(fetchFn, listId)
+        await supabase
+          .from('import_tracking')
+          .update({ [weekColumn]: uniqueOpens, updated_at: new Date().toISOString() })
+          .eq('id', record.id)
+        results.push({ id: record.id, list_id: listId, week, status: `updated ${weekColumn}` })
       } else if (week > 4) {
-        // Fill any remaining null week columns
         for (let w = 1; w <= 4; w++) {
           const col = `week${w}_opens`
           if (record[col] === null || record[col] === undefined) {
-            const uniqueOpens = await getUniqueOpens(listId)
+            const uniqueOpens = await getUniqueOpens(fetchFn, listId)
             await supabase
               .from('import_tracking')
               .update({ [col]: uniqueOpens, updated_at: new Date().toISOString() })
               .eq('id', record.id)
           }
         }
-
-        const remainingSubs = await getRemainingSubscribers(listId)
-
+        const remainingSubs = await getRemainingSubscribers(fetchFn, listId)
         await supabase
           .from('import_tracking')
           .update({
@@ -71,7 +87,6 @@ export async function GET(request: NextRequest) {
             updated_at: new Date().toISOString(),
           })
           .eq('id', record.id)
-
         results.push({ id: record.id, list_id: listId, week, status: 'completed' })
       } else {
         results.push({ id: record.id, list_id: listId, week, status: 'too early' })
@@ -88,21 +103,17 @@ export async function GET(request: NextRequest) {
   })
 }
 
-async function getUniqueOpens(listId: number): Promise<number> {
+async function getUniqueOpens(fetchFn: FetchFn, listId: number): Promise<number> {
   const query = `subscribers.id IN (SELECT subscriber_id FROM campaign_views WHERE campaign_id IN (SELECT campaign_id FROM campaign_lists WHERE list_id = ${listId})) AND subscribers.id IN (SELECT subscriber_id FROM subscriber_lists WHERE list_id = ${listId})`
-  const res = await listmonkFetch(
-    `/api/subscribers?per_page=0&query=${encodeURIComponent(query)}`
-  )
+  const res = await fetchFn(`subscribers?per_page=0&query=${encodeURIComponent(query)}`)
   if (!res.ok) throw new Error(`Listmonk query failed: ${res.status}`)
   const data = await res.json()
   return data.data?.total ?? 0
 }
 
-async function getRemainingSubscribers(listId: number): Promise<number> {
+async function getRemainingSubscribers(fetchFn: FetchFn, listId: number): Promise<number> {
   const query = `subscribers.id IN (SELECT subscriber_id FROM subscriber_lists WHERE list_id = ${listId})`
-  const res = await listmonkFetch(
-    `/api/subscribers?per_page=0&query=${encodeURIComponent(query)}`
-  )
+  const res = await fetchFn(`subscribers?per_page=0&query=${encodeURIComponent(query)}`)
   if (!res.ok) throw new Error(`Listmonk query failed: ${res.status}`)
   const data = await res.json()
   return data.data?.total ?? 0
