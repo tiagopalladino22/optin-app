@@ -1,7 +1,8 @@
 'use client'
 
 import {
-  LineChart,
+  ComposedChart,
+  Bar,
   Line,
   XAxis,
   YAxis,
@@ -31,51 +32,77 @@ export default function RateChart({ data }: Props) {
   }
 
   return (
-    <div className="h-72">
+    <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e0ddd8" />
+        <ComposedChart data={data} margin={{ top: 10, right: 20, bottom: 30, left: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e0ddd8" vertical={false} />
           <XAxis
             dataKey="name"
-            tick={{ fontSize: 12, fill: '#8a9aaa' }}
+            tick={{ fontSize: 11, fill: '#8a9aaa' }}
             tickLine={false}
             axisLine={{ stroke: '#e0ddd8' }}
+            angle={-35}
+            textAnchor="end"
+            height={60}
+            interval={data.length > 15 ? Math.floor(data.length / 10) : 0}
           />
           <YAxis
+            yAxisId="left"
             tick={{ fontSize: 12, fill: '#8a9aaa' }}
             tickLine={false}
-            axisLine={{ stroke: '#e0ddd8' }}
+            axisLine={false}
             tickFormatter={(v) => `${v}%`}
+            domain={[0, 'auto']}
+          />
+          <YAxis
+            yAxisId="right"
+            orientation="right"
+            tick={{ fontSize: 12, fill: '#8a9aaa' }}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={(v) => `${v}%`}
+            domain={[0, 'auto']}
           />
           <Tooltip
             contentStyle={{
               fontSize: 13,
-              borderRadius: 8,
+              borderRadius: 12,
               border: '1px solid #e0ddd8',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+              padding: '10px 14px',
+              backgroundColor: '#fff',
             }}
-            formatter={(value) => [`${Number(value).toFixed(1)}%`]}
+            formatter={(value) => [
+              `${Number(value).toFixed(1)}%`,
+            ]}
+            labelStyle={{ color: '#07111f', fontWeight: 600, marginBottom: 4 }}
           />
-          <Legend wrapperStyle={{ fontSize: 13 }} />
-          <Line
-            type="monotone"
+          <Legend
+            wrapperStyle={{ fontSize: 13, paddingTop: 8 }}
+            iconType="circle"
+          />
+          <Bar
+            yAxisId="left"
             dataKey="openRate"
             name="Open Rate"
+            fill="#25679e"
+            fillOpacity={0.15}
             stroke="#25679e"
-            strokeWidth={2}
-            dot={{ r: 4 }}
-            activeDot={{ r: 6 }}
+            strokeWidth={1}
+            radius={[4, 4, 0, 0]}
+            barSize={data.length > 15 ? 16 : 28}
           />
           <Line
+            yAxisId="right"
             type="monotone"
             dataKey="clickRate"
-            name="Click Rate"
-            stroke="#3a85c8"
-            strokeWidth={2}
-            dot={{ r: 4 }}
-            activeDot={{ r: 6 }}
+            name="CTR"
+            stroke="#e87c3e"
+            strokeWidth={2.5}
+            dot={{ r: 3, fill: '#e87c3e', stroke: '#fff', strokeWidth: 2 }}
+            activeDot={{ r: 6, fill: '#e87c3e', stroke: '#fff', strokeWidth: 2 }}
           />
-        </LineChart>
+        </ComposedChart>
       </ResponsiveContainer>
     </div>
   )

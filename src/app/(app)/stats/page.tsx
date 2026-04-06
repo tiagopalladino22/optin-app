@@ -89,9 +89,9 @@ export default function StatsPage() {
   const rateData = useMemo<RateDataPoint[]>(() => {
     const chrono = [...detailedCampaigns].reverse().slice(-20)
     return chrono.map((c) => ({
-      name: c.name.length > 20 ? c.name.slice(0, 18) + '...' : c.name,
-      openRate: c.sent > 0 ? ((c.uniqueOpens || c.views) / c.sent) * 100 : 0,
-      clickRate: (c.uniqueOpens || c.views) > 0 ? ((c.uniqueClicks || c.clicks) / (c.uniqueOpens || c.views)) * 100 : 0,
+      name: new Date(c.started_at || c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      openRate: parseFloat((c.sent > 0 ? ((c.uniqueOpens || c.views) / c.sent) * 100 : 0).toFixed(1)),
+      clickRate: parseFloat(((c.uniqueOpens || c.views) > 0 ? ((c.uniqueClicks || c.clicks) / (c.uniqueOpens || c.views)) * 100 : 0).toFixed(1)),
     }))
   }, [detailedCampaigns])
 
