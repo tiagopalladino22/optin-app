@@ -1,15 +1,13 @@
 'use client'
 
 import {
-  ComposedChart,
-  Bar,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from 'recharts'
 
 interface DataPoint {
@@ -25,85 +23,113 @@ interface Props {
 export default function RateChart({ data }: Props) {
   if (data.length === 0) {
     return (
-      <div className="h-64 flex items-center justify-center text-sm text-text-light">
+      <div className="h-48 flex items-center justify-center text-sm text-text-light">
         No campaign data to chart yet.
       </div>
     )
   }
 
   return (
-    <div className="h-80">
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} margin={{ top: 10, right: 20, bottom: 30, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e0ddd8" vertical={false} />
-          <XAxis
-            dataKey="name"
-            tick={{ fontSize: 11, fill: '#8a9aaa' }}
-            tickLine={false}
-            axisLine={{ stroke: '#e0ddd8' }}
-            angle={-35}
-            textAnchor="end"
-            height={60}
-            interval={data.length > 15 ? Math.floor(data.length / 10) : 0}
-          />
-          <YAxis
-            yAxisId="left"
-            tick={{ fontSize: 12, fill: '#8a9aaa' }}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={(v) => `${v}%`}
-            domain={[0, 'auto']}
-          />
-          <YAxis
-            yAxisId="right"
-            orientation="right"
-            tick={{ fontSize: 12, fill: '#8a9aaa' }}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={(v) => `${v}%`}
-            domain={[0, 'auto']}
-          />
-          <Tooltip
-            contentStyle={{
-              fontSize: 13,
-              borderRadius: 12,
-              border: '1px solid #e0ddd8',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-              padding: '10px 14px',
-              backgroundColor: '#fff',
-            }}
-            formatter={(value) => [
-              `${Number(value).toFixed(1)}%`,
-            ]}
-            labelStyle={{ color: '#07111f', fontWeight: 600, marginBottom: 4 }}
-          />
-          <Legend
-            wrapperStyle={{ fontSize: 13, paddingTop: 8 }}
-            iconType="circle"
-          />
-          <Bar
-            yAxisId="left"
-            dataKey="openRate"
-            name="Open Rate"
-            fill="#25679e"
-            fillOpacity={0.15}
-            stroke="#25679e"
-            strokeWidth={1}
-            radius={[4, 4, 0, 0]}
-            barSize={data.length > 15 ? 16 : 28}
-          />
-          <Line
-            yAxisId="right"
-            type="monotone"
-            dataKey="clickRate"
-            name="CTR"
-            stroke="#e87c3e"
-            strokeWidth={2.5}
-            dot={{ r: 3, fill: '#e87c3e', stroke: '#fff', strokeWidth: 2 }}
-            activeDot={{ r: 6, fill: '#e87c3e', stroke: '#fff', strokeWidth: 2 }}
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
+    <div className="grid grid-cols-2 gap-4">
+      <div>
+        <p className="text-xs text-text-light uppercase tracking-wider mb-2 font-medium">Open Rate</p>
+        <div className="h-48">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 5, right: 10, bottom: 5, left: -10 }}>
+              <defs>
+                <linearGradient id="openGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#25679e" stopOpacity={0.2} />
+                  <stop offset="100%" stopColor="#25679e" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e0ddd8" vertical={false} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 10, fill: '#8a9aaa' }}
+                tickLine={false}
+                axisLine={false}
+                interval={data.length > 10 ? Math.floor(data.length / 6) : 0}
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: '#8a9aaa' }}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(v) => `${v}%`}
+                width={40}
+              />
+              <Tooltip
+                contentStyle={{
+                  fontSize: 12,
+                  borderRadius: 8,
+                  border: '1px solid #e0ddd8',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                  padding: '6px 10px',
+                }}
+                formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Open Rate']}
+              />
+              <Area
+                type="monotone"
+                dataKey="openRate"
+                stroke="#25679e"
+                strokeWidth={2}
+                fill="url(#openGrad)"
+                dot={{ r: 2.5, fill: '#25679e', stroke: '#fff', strokeWidth: 1.5 }}
+                activeDot={{ r: 5, fill: '#25679e', stroke: '#fff', strokeWidth: 2 }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div>
+        <p className="text-xs text-text-light uppercase tracking-wider mb-2 font-medium">Click-Through Rate</p>
+        <div className="h-48">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 5, right: 10, bottom: 5, left: -10 }}>
+              <defs>
+                <linearGradient id="ctrGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#e87c3e" stopOpacity={0.2} />
+                  <stop offset="100%" stopColor="#e87c3e" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e0ddd8" vertical={false} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 10, fill: '#8a9aaa' }}
+                tickLine={false}
+                axisLine={false}
+                interval={data.length > 10 ? Math.floor(data.length / 6) : 0}
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: '#8a9aaa' }}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(v) => `${v}%`}
+                width={40}
+              />
+              <Tooltip
+                contentStyle={{
+                  fontSize: 12,
+                  borderRadius: 8,
+                  border: '1px solid #e0ddd8',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                  padding: '6px 10px',
+                }}
+                formatter={(value) => [`${Number(value).toFixed(1)}%`, 'CTR']}
+              />
+              <Area
+                type="monotone"
+                dataKey="clickRate"
+                stroke="#e87c3e"
+                strokeWidth={2}
+                fill="url(#ctrGrad)"
+                dot={{ r: 2.5, fill: '#e87c3e', stroke: '#fff', strokeWidth: 1.5 }}
+                activeDot={{ r: 5, fill: '#e87c3e', stroke: '#fff', strokeWidth: 2 }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
     </div>
   )
 }
