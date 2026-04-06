@@ -77,6 +77,7 @@ export default function SegmentRuleEditor({ rules, logic, onChange, onLogicChang
   const [lists, setLists] = useState<ListOption[]>([])
   const [listsLoading, setListsLoading] = useState(true)
   const [listSearch, setListSearch] = useState('')
+  const [pubFilter, setPubFilter] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchLists() {
@@ -291,6 +292,49 @@ export default function SegmentRuleEditor({ rules, logic, onChange, onLogicChang
 
                     {rule.value !== 'all' && (
                       <>
+                        {/* Pub code filter tags */}
+                        {(() => {
+                          const codes = Array.from(
+                            new Set(
+                              lists
+                                .map((l) => {
+                                  const m = l.name.match(/^([A-Z]{2,5})\s*-/)
+                                  return m ? m[1] : null
+                                })
+                                .filter(Boolean)
+                            )
+                          ).sort() as string[]
+                          if (codes.length <= 1) return null
+                          return (
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              <button
+                                type="button"
+                                onClick={() => setPubFilter(null)}
+                                className={`px-2 py-0.5 text-xs font-medium rounded transition-colors ${
+                                  pubFilter === null
+                                    ? 'bg-navy text-white'
+                                    : 'bg-offwhite text-text-mid hover:bg-border-custom'
+                                }`}
+                              >
+                                All
+                              </button>
+                              {codes.map((code) => (
+                                <button
+                                  key={code}
+                                  type="button"
+                                  onClick={() => setPubFilter(pubFilter === code ? null : code)}
+                                  className={`px-2 py-0.5 text-xs font-mono font-medium rounded transition-colors ${
+                                    pubFilter === code
+                                      ? 'bg-accent text-white'
+                                      : 'bg-accent-wash text-accent hover:bg-accent/20'
+                                  }`}
+                                >
+                                  {code}
+                                </button>
+                              ))}
+                            </div>
+                          )
+                        })()}
                         <input
                           type="text"
                           value={listSearch}
@@ -302,7 +346,11 @@ export default function SegmentRuleEditor({ rules, logic, onChange, onLogicChang
                           {selectedListIds.length} selected
                         </p>
                         {lists
-                          .filter((l) => !listSearch.trim() || l.name.toLowerCase().includes(listSearch.toLowerCase()))
+                          .filter((l) => {
+                            if (pubFilter && !l.name.toUpperCase().startsWith(pubFilter)) return false
+                            if (listSearch.trim() && !l.name.toLowerCase().includes(listSearch.toLowerCase())) return false
+                            return true
+                          })
                           .map((list) => {
                           const isSelected = selectedListIds.includes(String(list.id))
                           return (
