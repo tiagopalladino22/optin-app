@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { createServiceRoleClient } from '@/lib/supabase-server'
 import { listmonkFetch } from '@/lib/listmonk'
-import { parseCampaignName, getIssueGroupKey } from '@/lib/campaign-parser'
+import { parseCampaignName, getIssueGroupKey, type PublicationMapping } from '@/lib/campaign-parser'
 import { pushToGrowth } from '@/lib/webhook-client'
 
 interface CampaignData {
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
   // Get all publications with growth_client_id mapped
   let pubQuery = supabase
     .from('publications')
-    .select('code, growth_client_id, sync_grouping, sync_send_days, sync_enabled')
+    .select('code, name, growth_client_id, sync_grouping, sync_send_days, sync_enabled')
     .not('growth_client_id', 'is', null)
 
   if (filterCode) pubQuery = pubQuery.eq('code', filterCode)
@@ -52,6 +52,12 @@ export async function POST(request: NextRequest) {
   if (!publications || publications.length === 0) {
     return NextResponse.json({ message: 'No publications mapped to 150growth', synced: 0 })
   }
+
+  // Build publication mappings for the parser (name → code)
+  const pubMappings: PublicationMapping[] = publications.map((p) => ({
+    code: p.code,
+    name: p.name || p.code,
+  }))
 
   const pubMap = new Map<string, { growthClientId: string; grouping: string }>()
   for (const pub of publications) {
@@ -74,7 +80,7 @@ export async function POST(request: NextRequest) {
   }>()
 
   for (const campaign of campaigns) {
-    const parsed = parseCampaignName(campaign.name)
+    const parsed = parseCampaignName(campaign.name, pubMappings)
     if (!parsed) continue
 
     const pubConfig = pubMap.get(parsed.publicationCode)
