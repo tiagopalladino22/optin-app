@@ -8,6 +8,7 @@ import { pushToGrowth } from '@/lib/webhook-client'
 interface CampaignData {
   id: number
   name: string
+  subject: string
   sent: number
   views: number
   clicks: number
@@ -143,13 +144,33 @@ export async function POST(request: NextRequest) {
 
   const results: { issue: string; status: string }[] = []
 
-  for (const [, group] of Array.from(issueGroups.entries())) {
+  // Only sync the most recent issue per publication
+  const latestPerPub = new Map<string, string>()
+  for (const [key, group] of Array.from(issueGroups.entries())) {
+    const pubCode = group.parsed?.publicationCode
+    if (!pubCode) continue
+    const existing = latestPerPub.get(pubCode)
+    if (!existing) {
+      latestPerPub.set(pubCode, key)
+    } else {
+      const existingDate = issueGroups.get(existing)!.parsed?.sendDate || ''
+      const currentDate = group.parsed?.sendDate || ''
+      if (currentDate > existingDate) {
+        latestPerPub.set(pubCode, key)
+      }
+    }
+  }
+  const latestKeys = new Set(Array.from(latestPerPub.values()))
+
+  for (const [key, group] of Array.from(issueGroups.entries())) {
+    if (!latestKeys.has(key)) continue
+
     const { parsed, campaigns: groupCampaigns, growthClientId } = group
     if (!parsed) continue
 
     // Use earliest send date in the group for the kpi_entry
     const allParsed = groupCampaigns
-      .map((c) => parseCampaignName(c.name))
+      .map((c) => parseCampaignName(c.name, pubMappings))
       .filter(Boolean) as NonNullable<ReturnType<typeof parseCampaignName>>[]
     const earliestDate = allParsed.length > 0
       ? allParsed.reduce((earliest, p) => p.sendDate < earliest ? p.sendDate : earliest, allParsed[0].sendDate)
@@ -222,7 +243,7 @@ export async function POST(request: NextRequest) {
         type: 'campaign_stats',
         client_id: growthClientId,
         data: {
-          issue_name: parsed.issueName,
+          issue_name: groupCampaigns[0]?.subject || parsed.issueName,
           issue_number: parsed.issueNumber,
           send_date: earliestDate,
           recipients: totalSent,
@@ -281,6 +302,7 @@ async function fetchRecentCampaigns(): Promise<CampaignData[]> {
       campaigns.push({
         id: c.id,
         name: c.name,
+        subject: c.subject || c.name,
         sent: c.sent || 0,
         views: c.views || 0,
         clicks: c.clicks || 0,
