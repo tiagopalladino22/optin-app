@@ -79,14 +79,14 @@ export default function SegmentsPage() {
       </div>
 
       {segments.length === 0 ? (
-        <div className="bg-white rounded-xl border border-border-custom p-12 text-center">
+        <div className="bg-surface rounded-xl border border-border-custom p-12 text-center">
           <p className="text-text-mid">No segments yet.</p>
           <p className="text-sm text-text-light mt-2">
             Create audience segments based on subscriber data and engagement activity.
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-border-custom overflow-hidden">
+        <div className="bg-surface rounded-xl border border-border-custom overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border-custom bg-offwhite">

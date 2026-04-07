@@ -33,7 +33,7 @@ export default function ImportPage() {
       <h1 className="font-display text-3xl tracking-wide text-navy uppercase">Import Subscribers</h1>
 
       {userRole === 'admin' && clients.length > 0 && (
-        <div className="bg-white rounded-xl border border-border-custom p-4">
+        <div className="bg-surface rounded-xl border border-border-custom p-4">
           <label className="block text-sm font-medium text-text-mid mb-2">Listmonk Instance</label>
           <select
             value={selectedClientId || ''}

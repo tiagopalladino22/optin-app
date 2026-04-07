@@ -234,7 +234,7 @@ export default function SegmentRuleEditor({ rules, logic, onChange, onLogicChang
                     {/* All lists option — used with automations to auto-match by publication */}
                     <label
                       className={`flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm font-medium transition-colors border-b border-border-custom mb-2 pb-2 ${
-                        rule.value === 'all' ? 'bg-accent-wash text-accent' : 'hover:bg-white text-text-mid'
+                        rule.value === 'all' ? 'bg-accent-wash text-accent' : 'hover:bg-surface text-text-mid'
                       }`}
                     >
                       <input
@@ -357,7 +357,7 @@ export default function SegmentRuleEditor({ rules, logic, onChange, onLogicChang
                             <label
                               key={list.id}
                               className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer text-sm transition-colors ${
-                                isSelected ? 'bg-accent-wash text-accent' : 'hover:bg-white text-text-mid'
+                                isSelected ? 'bg-accent-wash text-accent' : 'hover:bg-surface text-text-mid'
                               }`}
                             >
                               <input

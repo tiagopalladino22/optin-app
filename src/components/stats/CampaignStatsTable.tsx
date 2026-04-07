@@ -25,7 +25,7 @@ export default function CampaignStatsTable({ campaigns }: Props) {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-border-custom overflow-hidden">
+    <div className="bg-surface rounded-xl border border-border-custom overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>

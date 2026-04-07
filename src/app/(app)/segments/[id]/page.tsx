@@ -216,7 +216,7 @@ export default function SegmentDetailPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setEditing(true)}
-              className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-white rounded-lg"
+              className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-surface rounded-lg"
             >
               Edit
             </button>
@@ -246,7 +246,7 @@ export default function SegmentDetailPage() {
       {/* Edit Mode */}
       {editing && (
         <div className="space-y-5">
-          <div className="bg-white rounded-xl border border-border-custom p-5 space-y-4">
+          <div className="bg-surface rounded-xl border border-border-custom p-5 space-y-4">
             <div>
               <label className="block text-sm font-medium text-text-mid mb-1">Segment Name</label>
               <input
@@ -269,7 +269,7 @@ export default function SegmentDetailPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-border-custom p-5">
+          <div className="bg-surface rounded-xl border border-border-custom p-5">
             <h2 className="text-sm font-medium text-text-mid mb-3">Filter Rules</h2>
             <SegmentRuleEditor
               rules={editRules}
@@ -295,7 +295,7 @@ export default function SegmentDetailPage() {
                 setEditRules(segment.rules)
                 setEditLogic(segment.logic)
               }}
-              className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-white rounded-lg"
+              className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-surface rounded-lg"
             >
               Cancel
             </button>
@@ -306,21 +306,21 @@ export default function SegmentDetailPage() {
       {/* Segment Info Cards */}
       {!editing && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-white rounded-xl border border-border-custom p-4">
+          <div className="bg-surface rounded-xl border border-border-custom p-4">
             <p className="text-xs text-text-light uppercase tracking-wider mb-1">Subscribers</p>
             <p className="font-display text-3xl text-navy">
               {subsLoading ? '...' : subsCount.toLocaleString()}
             </p>
           </div>
-          <div className="bg-white rounded-xl border border-border-custom p-4">
+          <div className="bg-surface rounded-xl border border-border-custom p-4">
             <p className="text-xs text-text-light uppercase tracking-wider mb-1">Rules</p>
             <p className="font-display text-3xl text-navy">{segment.rules.length}</p>
           </div>
-          <div className="bg-white rounded-xl border border-border-custom p-4">
+          <div className="bg-surface rounded-xl border border-border-custom p-4">
             <p className="text-xs text-text-light uppercase tracking-wider mb-1">Logic</p>
             <p className="font-display text-3xl text-navy uppercase">{segment.logic}</p>
           </div>
-          <div className="bg-white rounded-xl border border-border-custom p-4">
+          <div className="bg-surface rounded-xl border border-border-custom p-4">
             <p className="text-xs text-text-light uppercase tracking-wider mb-1">Exported</p>
             <p className="font-display text-3xl text-navy">
               {segment.exported_list_id ? `#${segment.exported_list_id}` : '—'}
@@ -331,7 +331,7 @@ export default function SegmentDetailPage() {
 
       {/* Subscribers Table */}
       {!editing && (
-        <div className="bg-white rounded-xl border border-border-custom overflow-hidden">
+        <div className="bg-surface rounded-xl border border-border-custom overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-border-custom">
             <h2 className="font-display text-xl tracking-wide text-navy uppercase">
               Matching Subscribers

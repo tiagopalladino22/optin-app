@@ -158,13 +158,13 @@ export default function StatsPage() {
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
           {[...Array(7)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-border-custom p-4">
+            <div key={i} className="bg-surface rounded-xl border border-border-custom p-4">
               <div className="skeleton h-3 w-16 mb-3" />
               <div className="skeleton h-7 w-14" />
             </div>
           ))}
         </div>
-        <div className="bg-white rounded-xl border border-border-custom p-5">
+        <div className="bg-surface rounded-xl border border-border-custom p-5">
           <div className="skeleton h-4 w-56 mb-4" />
           <div className="skeleton h-64 w-full rounded-lg" />
         </div>
@@ -189,7 +189,7 @@ export default function StatsPage() {
         <button
           onClick={exportCsv}
           disabled={exporting || detailedCampaigns.length === 0}
-          className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-white rounded-lg disabled:opacity-50 transition-colors"
+          className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-surface rounded-lg disabled:opacity-50 transition-colors"
         >
           Export CSV
         </button>
@@ -205,14 +205,15 @@ export default function StatsPage() {
         <SummaryCard label="Bounces" value={totalBounces.toLocaleString()} />
       </div>
 
-      <div className="bg-white rounded-xl border border-border-custom p-5">
-        <h2 className="font-display text-xl tracking-wide text-navy uppercase mb-4">
-          Open Rate & CTR Trend {loadingUniques ? '' : '(Unique)'}
-        </h2>
-        <RateChart data={rateData} />
+      <div className="bg-surface rounded-xl border border-border-custom p-5">
+        <RateChart data={rateData} metric="openRate" title="Open Rate" color="#25679e" />
       </div>
 
-      <div className="bg-white rounded-xl border border-border-custom p-5">
+      <div className="bg-surface rounded-xl border border-border-custom p-5">
+        <RateChart data={rateData} metric="clickRate" title="Click-Through Rate" color="#e87c3e" />
+      </div>
+
+      <div className="bg-surface rounded-xl border border-border-custom p-5">
         <h2 className="font-display text-xl tracking-wide text-navy uppercase mb-4">Subscriber Growth</h2>
         <SubscriberGrowthChart data={growthData} />
       </div>
@@ -227,7 +228,7 @@ export default function StatsPage() {
 
 function SummaryCard({ label, value, sub, loading }: { label: string; value: string; sub?: string; loading?: boolean }) {
   return (
-    <div className="bg-white rounded-xl border border-border-custom p-4">
+    <div className="bg-surface rounded-xl border border-border-custom p-4">
       <p className="text-xs text-text-light uppercase tracking-wider mb-1">{label}</p>
       {loading ? (
         <div className="skeleton h-7 w-14 mt-1" />

@@ -114,14 +114,14 @@ export default function AutomationsPage() {
       </div>
 
       {automations.length === 0 ? (
-        <div className="bg-white rounded-xl border border-border-custom p-12 text-center">
+        <div className="bg-surface rounded-xl border border-border-custom p-12 text-center">
           <p className="text-text-mid">No automations yet.</p>
           <p className="text-sm text-text-light mt-2">
             Create scheduled automations to process subscribers automatically.
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-border-custom overflow-hidden">
+        <div className="bg-surface rounded-xl border border-border-custom overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border-custom bg-offwhite">
@@ -174,7 +174,7 @@ export default function AutomationsPage() {
                       }`}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        className={`inline-block h-4 w-4 transform rounded-full bg-surface transition-transform ${
                           auto.is_active ? 'translate-x-6' : 'translate-x-1'
                         }`}
                       />

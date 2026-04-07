@@ -5,10 +5,11 @@ import {
   Area,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  ReferenceLine,
 } from 'recharts'
+import { useTheme } from '@/lib/ThemeProvider'
 
 interface DataPoint {
   name: string
@@ -18,117 +19,106 @@ interface DataPoint {
 
 interface Props {
   data: DataPoint[]
+  metric?: 'openRate' | 'clickRate'
+  title?: string
+  color?: string
 }
 
-export default function RateChart({ data }: Props) {
+export default function RateChart({ data, metric = 'openRate', title = 'Open Rate', color = '#25679e' }: Props) {
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
+
   if (data.length === 0) {
     return (
-      <div className="h-48 flex items-center justify-center text-sm text-text-light">
+      <div className="h-52 flex items-center justify-center text-sm text-text-light">
         No campaign data to chart yet.
       </div>
     )
   }
 
+  const tickColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'
+  const tooltipBg = isDark ? '#2c2c2e' : '#ffffff'
+  const tooltipBorder = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'
+  const dotStroke = isDark ? '#1c1c1e' : '#ffffff'
+  const gradientId = `grad-${metric}`
+
+  const avg = data.reduce((s, d) => s + d[metric], 0) / data.length
+  const max = Math.max(...data.map((d) => d[metric]))
+  const min = Math.min(...data.map((d) => d[metric]))
+
   return (
-    <div className="grid grid-cols-2 gap-4">
-      <div>
-        <p className="text-xs text-text-light uppercase tracking-wider mb-2 font-medium">Open Rate</p>
-        <div className="h-48">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 5, right: 10, bottom: 5, left: -10 }}>
-              <defs>
-                <linearGradient id="openGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#25679e" stopOpacity={0.2} />
-                  <stop offset="100%" stopColor="#25679e" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e0ddd8" vertical={false} />
-              <XAxis
-                dataKey="name"
-                tick={{ fontSize: 10, fill: '#8a9aaa' }}
-                tickLine={false}
-                axisLine={false}
-                interval={data.length > 10 ? Math.floor(data.length / 6) : 0}
-              />
-              <YAxis
-                tick={{ fontSize: 10, fill: '#8a9aaa' }}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(v) => `${v}%`}
-                width={40}
-              />
-              <Tooltip
-                contentStyle={{
-                  fontSize: 12,
-                  borderRadius: 8,
-                  border: '1px solid #e0ddd8',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                  padding: '6px 10px',
-                }}
-                formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Open Rate']}
-              />
-              <Area
-                type="monotone"
-                dataKey="openRate"
-                stroke="#25679e"
-                strokeWidth={2}
-                fill="url(#openGrad)"
-                dot={{ r: 2.5, fill: '#25679e', stroke: '#fff', strokeWidth: 1.5 }}
-                activeDot={{ r: 5, fill: '#25679e', stroke: '#fff', strokeWidth: 2 }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+    <div>
+      <div className="flex items-baseline justify-between mb-4">
+        <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
+        <div className="flex items-center gap-4">
+          <span className="text-xs text-text-light">
+            Min <span className="font-medium text-text-mid">{min.toFixed(1)}%</span>
+          </span>
+          <span className="text-xs text-text-light">
+            Avg <span className="font-semibold" style={{ color }}>{avg.toFixed(1)}%</span>
+          </span>
+          <span className="text-xs text-text-light">
+            Max <span className="font-medium text-text-mid">{max.toFixed(1)}%</span>
+          </span>
         </div>
       </div>
-
-      <div>
-        <p className="text-xs text-text-light uppercase tracking-wider mb-2 font-medium">Click-Through Rate</p>
-        <div className="h-48">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 5, right: 10, bottom: 5, left: -10 }}>
-              <defs>
-                <linearGradient id="ctrGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#e87c3e" stopOpacity={0.2} />
-                  <stop offset="100%" stopColor="#e87c3e" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e0ddd8" vertical={false} />
-              <XAxis
-                dataKey="name"
-                tick={{ fontSize: 10, fill: '#8a9aaa' }}
-                tickLine={false}
-                axisLine={false}
-                interval={data.length > 10 ? Math.floor(data.length / 6) : 0}
-              />
-              <YAxis
-                tick={{ fontSize: 10, fill: '#8a9aaa' }}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(v) => `${v}%`}
-                width={40}
-              />
-              <Tooltip
-                contentStyle={{
-                  fontSize: 12,
-                  borderRadius: 8,
-                  border: '1px solid #e0ddd8',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                  padding: '6px 10px',
-                }}
-                formatter={(value) => [`${Number(value).toFixed(1)}%`, 'CTR']}
-              />
-              <Area
-                type="monotone"
-                dataKey="clickRate"
-                stroke="#e87c3e"
-                strokeWidth={2}
-                fill="url(#ctrGrad)"
-                dot={{ r: 2.5, fill: '#e87c3e', stroke: '#fff', strokeWidth: 1.5 }}
-                activeDot={{ r: 5, fill: '#e87c3e', stroke: '#fff', strokeWidth: 2 }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+      <div className="h-52">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 20, right: 16, bottom: 8, left: 0 }}>
+            <defs>
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={color} stopOpacity={isDark ? 0.3 : 0.15} />
+                <stop offset="100%" stopColor={color} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <XAxis
+              dataKey="name"
+              tick={{ fontSize: 10, fill: tickColor, dy: 8 }}
+              tickLine={false}
+              axisLine={false}
+              interval={data.length > 10 ? Math.floor(data.length / 6) : 0}
+              height={35}
+            />
+            <YAxis
+              tick={{ fontSize: 10, fill: tickColor, dx: -8 }}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(v) => `${v}%`}
+              width={50}
+              domain={[0, (dataMax: number) => Math.max(Math.ceil(dataMax * 1.2), dataMax + 2)]}
+            />
+            <ReferenceLine
+              y={avg}
+              stroke={color}
+              strokeDasharray="4 4"
+              strokeOpacity={0.25}
+            />
+            <Tooltip
+              contentStyle={{
+                fontSize: 12,
+                fontWeight: 500,
+                borderRadius: 10,
+                border: `1px solid ${tooltipBorder}`,
+                boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                padding: '8px 12px',
+                backgroundColor: tooltipBg,
+                color: isDark ? '#f5f5f7' : '#1d1d1f',
+              }}
+              itemStyle={{ color: isDark ? '#f5f5f7' : '#1d1d1f' }}
+              formatter={(value) => [`${Number(value).toFixed(1)}%`]}
+              cursor={{ stroke: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', strokeWidth: 1 }}
+            />
+            <Area
+              type="monotone"
+              dataKey={metric}
+              stroke={color}
+              strokeWidth={2}
+              fill={`url(#${gradientId})`}
+              dot={false}
+              activeDot={{ r: 4, fill: color, stroke: dotStroke, strokeWidth: 2 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
     </div>
   )

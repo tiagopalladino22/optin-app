@@ -123,7 +123,7 @@ function SummaryContent() {
         <div className="skeleton h-8 w-64" />
         <div className="grid grid-cols-3 lg:grid-cols-7 gap-4">
           {[...Array(7)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-border-custom p-4">
+            <div key={i} className="bg-surface rounded-xl border border-border-custom p-4">
               <div className="skeleton h-3 w-16 mb-3" />
               <div className="skeleton h-7 w-14" />
             </div>
@@ -198,7 +198,7 @@ function SummaryContent() {
             a.click()
             URL.revokeObjectURL(url)
           }}
-          className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-white rounded-lg transition-colors"
+          className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-surface rounded-lg transition-colors"
         >
           Export CSV
         </button>
@@ -225,7 +225,7 @@ function SummaryContent() {
       </div>
 
       {/* Per-campaign breakdown */}
-      <div className="bg-white rounded-xl border border-border-custom overflow-hidden">
+      <div className="bg-surface rounded-xl border border-border-custom overflow-hidden">
         <div className="px-5 py-4 border-b border-border-custom">
           <h2 className="font-display text-xl tracking-wide text-navy uppercase">Per-Campaign Breakdown</h2>
         </div>
@@ -295,7 +295,7 @@ function SummaryContent() {
 
 function SummaryCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="bg-white rounded-xl border border-border-custom p-4">
+    <div className="bg-surface rounded-xl border border-border-custom p-4">
       <p className="text-xs text-text-light uppercase tracking-wider mb-1">{label}</p>
       <p className="font-display text-3xl text-navy">{value}</p>
       {sub && <p className="text-xs text-text-light mt-0.5">{sub}</p>}

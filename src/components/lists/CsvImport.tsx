@@ -375,7 +375,7 @@ export default function CsvImport({ listId, clientId }: CsvImportProps) {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-border-custom p-6">
+    <div className="bg-surface rounded-xl border border-border-custom p-6">
       <h2 className="text-lg font-medium text-navy mb-2">Import Subscribers</h2>
       <p className="text-sm text-text-light mb-4">
         Upload a CSV file to import subscribers. You can import to this list or split into multiple new lists.
@@ -510,7 +510,7 @@ export default function CsvImport({ listId, clientId }: CsvImportProps) {
           <div className="flex justify-end gap-3">
             <button
               onClick={reset}
-              className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-white rounded-lg"
+              className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-surface rounded-lg"
             >
               Cancel
             </button>
@@ -706,7 +706,7 @@ export default function CsvImport({ listId, clientId }: CsvImportProps) {
           <div className="flex justify-end gap-3">
             <button
               onClick={() => setStep('map')}
-              className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-white rounded-lg"
+              className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-surface rounded-lg"
             >
               Back
             </button>
@@ -799,7 +799,7 @@ export default function CsvImport({ listId, clientId }: CsvImportProps) {
           <div className="flex justify-end gap-3">
             <button
               onClick={() => setStep('split')}
-              className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-white rounded-lg"
+              className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-surface rounded-lg"
             >
               Back
             </button>
@@ -867,7 +867,7 @@ export default function CsvImport({ listId, clientId }: CsvImportProps) {
           <div className="flex justify-end">
             <button
               onClick={reset}
-              className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-white rounded-lg"
+              className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-surface rounded-lg"
             >
               Import Another File
             </button>

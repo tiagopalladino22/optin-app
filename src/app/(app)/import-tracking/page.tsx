@@ -257,7 +257,7 @@ export default function ImportTrackingPage() {
     return (
       <div className="p-6 space-y-6">
         <div className="skeleton h-8 w-48 rounded" />
-        <div className="bg-white rounded-xl border border-border-custom p-6">
+        <div className="bg-surface rounded-xl border border-border-custom p-6">
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="skeleton h-10 w-full rounded" />
@@ -276,7 +276,7 @@ export default function ImportTrackingPage() {
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="px-4 py-2 border border-border-custom text-text-mid hover:bg-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            className="px-4 py-2 border border-border-custom text-text-mid hover:bg-surface rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
           >
             {refreshing ? 'Refreshing...' : 'Refresh Snapshots'}
           </button>
@@ -297,7 +297,7 @@ export default function ImportTrackingPage() {
       )}
 
       {showForm && (
-        <div className="bg-white rounded-xl border border-border-custom p-6 space-y-4">
+        <div className="bg-surface rounded-xl border border-border-custom p-6 space-y-4">
           <h3 className="font-display text-xl tracking-wide text-navy uppercase">Track New Import</h3>
 
           {clients.length > 0 && (
@@ -339,7 +339,7 @@ export default function ImportTrackingPage() {
               onChange={(e) => setListSearch(e.target.value)}
               className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-sm mb-2"
             />
-            <div className="max-h-64 overflow-y-auto border border-border-custom rounded-lg bg-white">
+            <div className="max-h-64 overflow-y-auto border border-border-custom rounded-lg bg-surface">
               {filteredLists.length === 0 ? (
                 <p className="px-3 py-2 text-sm text-text-light">No lists found</p>
               ) : (
@@ -429,7 +429,7 @@ export default function ImportTrackingPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-border-custom overflow-hidden">
+      <div className="bg-surface rounded-xl border border-border-custom overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

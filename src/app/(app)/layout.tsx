@@ -1,5 +1,6 @@
 import Sidebar from '@/components/Sidebar'
 import { DataProvider } from '@/lib/DataProvider'
+import { ThemeProvider } from '@/lib/ThemeProvider'
 
 export default function AppLayout({
   children,
@@ -7,13 +8,15 @@ export default function AppLayout({
   children: React.ReactNode
 }) {
   return (
-    <DataProvider>
-      <div className="flex h-screen bg-offwhite">
-        <Sidebar />
-        <main className="flex-1 p-8 overflow-auto">
-          {children}
-        </main>
-      </div>
-    </DataProvider>
+    <ThemeProvider>
+      <DataProvider>
+        <div className="flex h-screen" style={{ backgroundColor: 'var(--color-bg)' }}>
+          <Sidebar />
+          <main className="flex-1 p-8 overflow-auto">
+            {children}
+          </main>
+        </div>
+      </DataProvider>
+    </ThemeProvider>
   )
 }

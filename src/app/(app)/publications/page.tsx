@@ -119,7 +119,7 @@ export default function PublicationsPage() {
         <button
           onClick={() => { setShowForm(!showForm); clearMessages() }}
           className={showForm
-            ? 'px-4 py-2 border border-border-custom text-text-mid hover:bg-white rounded-lg text-sm font-medium transition-colors'
+            ? 'px-4 py-2 border border-border-custom text-text-mid hover:bg-surface rounded-lg text-sm font-medium transition-colors'
             : 'px-4 py-2 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent-bright transition-colors'
           }
         >
@@ -140,7 +140,7 @@ export default function PublicationsPage() {
       )}
 
       {showForm && (
-        <div className="bg-white rounded-xl border border-border-custom p-6">
+        <div className="bg-surface rounded-xl border border-border-custom p-6">
           <form onSubmit={handleSubmit} className="flex items-end gap-4">
             <div className="flex-shrink-0">
               <label className="block text-xs text-text-light uppercase tracking-wider font-medium mb-1.5">
@@ -180,7 +180,7 @@ export default function PublicationsPage() {
               <button
                 type="button"
                 onClick={() => { setShowForm(false); setCode(''); setName(''); clearMessages() }}
-                className="px-4 py-2 border border-border-custom text-text-mid hover:bg-white rounded-lg text-sm font-medium transition-colors"
+                className="px-4 py-2 border border-border-custom text-text-mid hover:bg-surface rounded-lg text-sm font-medium transition-colors"
               >
                 Cancel
               </button>
@@ -190,14 +190,14 @@ export default function PublicationsPage() {
       )}
 
       {publications.length === 0 ? (
-        <div className="bg-white rounded-xl border border-border-custom p-12 text-center">
+        <div className="bg-surface rounded-xl border border-border-custom p-12 text-center">
           <p className="text-text-mid">No publications yet.</p>
           <p className="text-sm text-text-light mt-2">
             Add 3-letter publication codes to organize your content.
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-border-custom overflow-hidden">
+        <div className="bg-surface rounded-xl border border-border-custom overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border-custom bg-offwhite">

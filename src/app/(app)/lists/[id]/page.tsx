@@ -61,24 +61,24 @@ export default function ListDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-border-custom p-5">
+        <div className="bg-surface rounded-xl border border-border-custom p-5">
           <p className="text-xs text-text-light uppercase tracking-wider mb-1">Subscribers</p>
           <p className="font-display text-3xl text-navy">
             {list.subscriber_count.toLocaleString()}
           </p>
         </div>
-        <div className="bg-white rounded-xl border border-border-custom p-5">
+        <div className="bg-surface rounded-xl border border-border-custom p-5">
           <p className="text-xs text-text-light uppercase tracking-wider mb-1">Type</p>
           <p className="font-display text-3xl text-navy capitalize">{list.type}</p>
         </div>
-        <div className="bg-white rounded-xl border border-border-custom p-5">
+        <div className="bg-surface rounded-xl border border-border-custom p-5">
           <p className="text-xs text-text-light uppercase tracking-wider mb-1">Opt-in</p>
           <p className="font-display text-3xl text-navy capitalize">{list.optin}</p>
         </div>
       </div>
 
       {list.description && (
-        <div className="bg-white rounded-xl border border-border-custom p-5">
+        <div className="bg-surface rounded-xl border border-border-custom p-5">
           <h2 className="text-sm font-medium text-text-mid mb-2">Description</h2>
           <p className="text-text-mid">{list.description}</p>
         </div>

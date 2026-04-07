@@ -34,58 +34,82 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-navy">
-      <div className="w-full max-w-sm">
-        <div className="bg-white rounded-xl shadow-2xl p-8">
-          <div className="mb-6">
-            <Image src="/logo.png" alt="OPTIN" width={160} height={53} className="invert" />
-          </div>
-          <p className="text-sm text-text-mid mb-8">Sign in to your account</p>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-text-mid mb-1.5">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-3 py-2.5 border border-border-custom rounded-lg text-sm text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-shadow"
-                placeholder="you@company.com"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-text-mid mb-1.5">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full px-3 py-2.5 border border-border-custom rounded-lg text-sm text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-shadow"
-                placeholder="••••••••"
-              />
-            </div>
-
-            {error && (
-              <p className="text-sm text-red-600">{error}</p>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2.5 px-4 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent-bright disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {loading ? 'Signing in...' : 'Sign in'}
-            </button>
-          </form>
+    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#000' }}>
+      <div className="w-full max-w-sm px-6">
+        <div className="text-center mb-10">
+          <Image src="/logo.png" alt="OPTIN" width={140} height={46} className="mx-auto invert" />
         </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full px-4 py-3 rounded-xl text-[15px] transition-all duration-200 outline-none"
+              style={{
+                backgroundColor: '#1c1c1e',
+                color: '#f5f5f7',
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = 'var(--color-accent)'
+                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37,103,158,0.2)'
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+              placeholder="Email"
+            />
+          </div>
+
+          <div>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full px-4 py-3 rounded-xl text-[15px] transition-all duration-200 outline-none"
+              style={{
+                backgroundColor: '#1c1c1e',
+                color: '#f5f5f7',
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = 'var(--color-accent)'
+                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37,103,158,0.2)'
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+              placeholder="Password"
+            />
+          </div>
+
+          {error && (
+            <p className="text-sm text-red-400 text-center">{error}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 px-4 text-white text-[15px] font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            style={{ backgroundColor: 'var(--color-accent)' }}
+            onMouseEnter={(e) => {
+              if (!loading) e.currentTarget.style.backgroundColor = 'var(--color-accent-bright)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--color-accent)'
+            }}
+          >
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
       </div>
     </div>
   )

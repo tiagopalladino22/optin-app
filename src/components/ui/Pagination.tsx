@@ -18,14 +18,14 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pr
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage <= 1}
-          className="px-3 py-1.5 text-sm text-text-mid border border-border-custom rounded-lg hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="px-3 py-1.5 text-sm text-text-mid border border-border-custom rounded-lg hover:bg-surface disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           Previous
         </button>
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages}
-          className="px-3 py-1.5 text-sm text-text-mid border border-border-custom rounded-lg hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="px-3 py-1.5 text-sm text-text-mid border border-border-custom rounded-lg hover:bg-surface disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           Next
         </button>

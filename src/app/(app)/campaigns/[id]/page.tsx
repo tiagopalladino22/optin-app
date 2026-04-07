@@ -163,7 +163,7 @@ export default function CampaignDetailPage() {
 
       {/* Queue navigation */}
       {queueIds.length > 1 && (
-        <div className="flex items-center justify-between bg-white rounded-xl border border-border-custom px-4 py-3">
+        <div className="flex items-center justify-between bg-surface rounded-xl border border-border-custom px-4 py-3">
           <button
             onClick={() => hasPrev && navigateTo(queueIds[currentIndex - 1])}
             disabled={!hasPrev}
@@ -213,7 +213,7 @@ export default function CampaignDetailPage() {
         <StatCard label="Bounce Rate" value={campaign.sent > 0 ? `${((campaign.bounces / campaign.sent) * 100).toFixed(1)}%` : '0.0%'} />
       </div>
 
-      <div className="bg-white rounded-xl border border-border-custom p-5">
+      <div className="bg-surface rounded-xl border border-border-custom p-5">
         <h2 className="text-sm font-medium text-text-mid mb-3">Details</h2>
         <dl className="grid grid-cols-2 gap-4 text-sm">
           <div>
@@ -244,7 +244,7 @@ export default function CampaignDetailPage() {
 
 function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="bg-white rounded-xl border border-border-custom p-5">
+    <div className="bg-surface rounded-xl border border-border-custom p-5">
       <p className="text-xs text-text-light uppercase tracking-wider mb-1">{label}</p>
       <p className="font-display text-3xl text-navy">{value}</p>
       {sub && <p className="text-xs text-text-light mt-1">{sub}</p>}

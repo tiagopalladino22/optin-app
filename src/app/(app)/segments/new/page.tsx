@@ -131,7 +131,7 @@ export default function NewSegmentPage() {
       )}
 
       {/* Name & Description */}
-      <div className="bg-white rounded-xl border border-border-custom p-5 space-y-4">
+      <div className="bg-surface rounded-xl border border-border-custom p-5 space-y-4">
         <div>
           <label className="block text-sm font-medium text-text-mid mb-1">Segment Name</label>
           <input
@@ -157,7 +157,7 @@ export default function NewSegmentPage() {
       </div>
 
       {/* Filter Rules */}
-      <div className="bg-white rounded-xl border border-border-custom p-5">
+      <div className="bg-surface rounded-xl border border-border-custom p-5">
         <h2 className="text-sm font-medium text-text-mid mb-3">Filter Rules</h2>
         <SegmentRuleEditor
           rules={rules}
@@ -172,7 +172,7 @@ export default function NewSegmentPage() {
         <button
           onClick={handlePreview}
           disabled={!canPreview || previewing}
-          className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-white rounded-lg disabled:opacity-50 transition-colors"
+          className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-surface rounded-lg disabled:opacity-50 transition-colors"
         >
           {previewing ? 'Previewing...' : 'Preview Segment'}
         </button>
@@ -224,7 +224,7 @@ export default function NewSegmentPage() {
 
       {/* Preview Results */}
       {preview && (
-        <div className="bg-white rounded-xl border border-border-custom p-5 space-y-4">
+        <div className="bg-surface rounded-xl border border-border-custom p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-medium text-text-mid">Preview Results</h2>
             <span className="text-sm font-medium text-navy">

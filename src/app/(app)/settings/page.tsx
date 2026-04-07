@@ -187,7 +187,7 @@ function ClientsTab() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-border-custom overflow-hidden">
+      <div className="bg-surface rounded-xl border border-border-custom overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border-custom">
           <h2 className="font-display text-xl tracking-wide text-navy uppercase">
             Clients
@@ -301,7 +301,7 @@ function ClientsTab() {
       </div>
 
       {showForm && (
-        <div className="bg-white rounded-xl border border-border-custom p-5">
+        <div className="bg-surface rounded-xl border border-border-custom p-5">
           <h2 className="font-display text-xl tracking-wide text-navy uppercase mb-4">
             {editingId ? 'Edit Client' : 'New Client'}
           </h2>
@@ -406,7 +406,7 @@ function ClientsTab() {
               <button
                 type="button"
                 onClick={cancelForm}
-                className="border border-border-custom text-text-mid hover:bg-white rounded-lg px-4 py-2 text-sm"
+                className="border border-border-custom text-text-mid hover:bg-surface rounded-lg px-4 py-2 text-sm"
               >
                 Cancel
               </button>
@@ -502,7 +502,7 @@ function UsersTab() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-border-custom overflow-hidden">
+      <div className="bg-surface rounded-xl border border-border-custom overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border-custom">
           <h2 className="font-display text-xl tracking-wide text-navy uppercase">
             Users
@@ -604,7 +604,7 @@ function UsersTab() {
       </div>
 
       {showForm && (
-        <div className="bg-white rounded-xl border border-border-custom p-5">
+        <div className="bg-surface rounded-xl border border-border-custom p-5">
           <h2 className="font-display text-xl tracking-wide text-navy uppercase mb-4">
             Invite User
           </h2>
@@ -693,7 +693,7 @@ function UsersTab() {
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="border border-border-custom text-text-mid hover:bg-white rounded-lg px-4 py-2 text-sm"
+                className="border border-border-custom text-text-mid hover:bg-surface rounded-lg px-4 py-2 text-sm"
               >
                 Cancel
               </button>
@@ -865,7 +865,7 @@ function ResourcesTab() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-border-custom p-5">
+      <div className="bg-surface rounded-xl border border-border-custom p-5">
         <label className="block text-sm font-medium text-text-mid mb-1">Select Client</label>
         <p className="text-xs text-text-light mb-3">
           Assign Listmonk lists to a client. They will automatically see campaigns sent to their lists.
@@ -887,7 +887,7 @@ function ResourcesTab() {
       </div>
 
       {selectedClientId && (
-        <div className="bg-white rounded-xl border border-border-custom p-5 space-y-4">
+        <div className="bg-surface rounded-xl border border-border-custom p-5 space-y-4">
           {loadingResources || loadingLists ? (
             <div className="space-y-3">
               <div className="skeleton h-6 w-32" />

@@ -129,13 +129,13 @@ export default function DashboardPage() {
         <div className="skeleton h-8 w-48 rounded-lg" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-border-custom p-5">
+            <div key={i} className="bg-surface rounded-xl border border-border-custom p-5">
               <div className="skeleton h-4 w-24 mb-3" />
               <div className="skeleton h-8 w-20" />
             </div>
           ))}
         </div>
-        <div className="bg-white rounded-xl border border-border-custom p-5">
+        <div className="bg-surface rounded-xl border border-border-custom p-5">
           <div className="skeleton h-4 w-40 mb-4" />
           <div className="skeleton h-64 w-full rounded-lg" />
         </div>
@@ -205,7 +205,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="bg-white rounded-xl border border-border-custom p-5">
+      <div className="bg-surface rounded-xl border border-border-custom p-5">
         <h2 className="font-display text-xl tracking-wide text-navy uppercase mb-4">Subscriber Growth</h2>
         <SubscriberGrowthChart data={growthData} />
       </div>
@@ -215,7 +215,7 @@ export default function DashboardPage() {
         {recentCampaigns.length === 0 ? (
           <p className="text-sm text-text-mid">No campaigns in this period.</p>
         ) : (
-          <div className="bg-white rounded-xl border border-border-custom overflow-hidden">
+          <div className="bg-surface rounded-xl border border-border-custom overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border-custom bg-offwhite">
@@ -249,7 +249,7 @@ export default function DashboardPage() {
 
 function StatCard({ label, value }: { label: string; value: string | null }) {
   return (
-    <div className="bg-white rounded-xl border border-border-custom p-5">
+    <div className="bg-surface rounded-xl border border-border-custom p-5">
       <p className="text-xs text-text-light uppercase tracking-wider mb-1">{label}</p>
       {value !== null ? (
         <p className="font-display text-3xl text-text-primary">{value}</p>

@@ -48,7 +48,7 @@ export default function CreateListPage() {
     <div className="max-w-xl space-y-6">
       <h1 className="font-display text-3xl tracking-wide text-navy uppercase">Create List</h1>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-border-custom p-6 space-y-5">
+      <form onSubmit={handleSubmit} className="bg-surface rounded-xl border border-border-custom p-6 space-y-5">
         <div>
           <label className="block text-sm font-medium text-text-mid mb-1">Name</label>
           <input
@@ -114,7 +114,7 @@ export default function CreateListPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="px-4 py-2 border border-border-custom text-text-mid hover:bg-white rounded-lg text-sm transition-colors"
+            className="px-4 py-2 border border-border-custom text-text-mid hover:bg-surface rounded-lg text-sm transition-colors"
           >
             Cancel
           </button>

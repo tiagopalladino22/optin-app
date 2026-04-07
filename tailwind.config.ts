@@ -6,20 +6,44 @@ const config: Config = {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        navy: { DEFAULT: '#07111f', mid: '#0e1f35', light: '#162840' },
-        accent: { DEFAULT: '#25679e', bright: '#3a85c8', wash: 'rgba(37,103,158,0.1)', border: 'rgba(37,103,158,0.18)' },
-        offwhite: '#f4f1ec',
-        'text-primary': '#07111f',
-        'text-mid': '#4a5a6a',
-        'text-light': '#8a9aaa',
-        'border-custom': '#e0ddd8',
+        navy: {
+          DEFAULT: 'var(--color-navy)',
+          mid: 'var(--color-navy-mid)',
+          light: 'var(--color-navy-light)',
+        },
+        accent: {
+          DEFAULT: 'var(--color-accent)',
+          bright: 'var(--color-accent-bright)',
+          wash: 'var(--color-accent-wash)',
+          border: 'var(--color-accent-border)',
+        },
+        offwhite: 'var(--color-offwhite)',
+        surface: 'var(--color-surface)',
+        'surface-elevated': 'var(--color-surface-elevated)',
+        'text-primary': 'var(--color-text-primary)',
+        'text-mid': 'var(--color-text-mid)',
+        'text-light': 'var(--color-text-light)',
+        'border-custom': 'var(--color-border)',
       },
       fontFamily: {
-        display: ['var(--font-bebas)', 'sans-serif'],
-        sans: ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+      },
+      borderRadius: {
+        'pill': '980px',
+      },
+      boxShadow: {
+        'apple': '0 2px 12px rgba(0,0,0,0.08)',
+        'apple-lg': '3px 5px 30px rgba(0,0,0,0.12)',
+        'apple-dark': '0 2px 12px rgba(0,0,0,0.3)',
+        'apple-dark-lg': '3px 5px 30px rgba(0,0,0,0.4)',
+      },
+      backdropBlur: {
+        'apple': '20px',
       },
     },
   },

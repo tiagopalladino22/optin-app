@@ -366,7 +366,7 @@ export default function AutomationDetailPage() {
             </button>
             <button
               onClick={startEditing}
-              className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-white rounded-lg"
+              className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-surface rounded-lg"
             >
               Edit
             </button>
@@ -397,7 +397,7 @@ export default function AutomationDetailPage() {
       {editing && (
         <div className="space-y-5">
           {/* Basic Info */}
-          <div className="bg-white rounded-xl border border-border-custom p-5 space-y-4">
+          <div className="bg-surface rounded-xl border border-border-custom p-5 space-y-4">
             <h2 className="font-display text-xl tracking-wide text-navy uppercase">Basic Info</h2>
             <div>
               <label className="block text-sm font-medium text-text-mid mb-1">Name</label>
@@ -430,7 +430,7 @@ export default function AutomationDetailPage() {
           </div>
 
           {/* Filter Rules */}
-          <div className="bg-white rounded-xl border border-border-custom p-5 space-y-4">
+          <div className="bg-surface rounded-xl border border-border-custom p-5 space-y-4">
             <h2 className="font-display text-xl tracking-wide text-navy uppercase">Filter Rules</h2>
             <SegmentRuleEditor
               rules={editRules}
@@ -442,7 +442,7 @@ export default function AutomationDetailPage() {
             <button
               onClick={handlePreview}
               disabled={editValidRules.length === 0 || previewing}
-              className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-white rounded-lg disabled:opacity-50 transition-colors"
+              className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-surface rounded-lg disabled:opacity-50 transition-colors"
             >
               {previewing ? 'Previewing...' : 'Preview'}
             </button>
@@ -450,7 +450,7 @@ export default function AutomationDetailPage() {
 
           {/* Preview Results */}
           {preview && (
-            <div className="bg-white rounded-xl border border-border-custom p-5 space-y-4">
+            <div className="bg-surface rounded-xl border border-border-custom p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-medium text-text-mid">Preview Results</h2>
                 <span className="text-sm font-medium text-navy">
@@ -493,7 +493,7 @@ export default function AutomationDetailPage() {
           )}
 
           {/* Schedule */}
-          <div className="bg-white rounded-xl border border-border-custom p-5 space-y-4">
+          <div className="bg-surface rounded-xl border border-border-custom p-5 space-y-4">
             <h2 className="font-display text-xl tracking-wide text-navy uppercase">Schedule</h2>
             <div className="grid grid-cols-3 gap-4">
               <div>
@@ -536,7 +536,7 @@ export default function AutomationDetailPage() {
           </div>
 
           {/* Actions */}
-          <div className="bg-white rounded-xl border border-border-custom p-5 space-y-4">
+          <div className="bg-surface rounded-xl border border-border-custom p-5 space-y-4">
             <h2 className="font-display text-xl tracking-wide text-navy uppercase">Actions</h2>
             <div className="space-y-3">
               {ACTION_OPTIONS.map((opt) => {
@@ -549,7 +549,7 @@ export default function AutomationDetailPage() {
                     className={`w-full text-left rounded-lg border p-4 transition-colors ${
                       isSelected
                         ? 'border-accent bg-accent-wash'
-                        : 'border-border-custom bg-white hover:bg-offwhite/50'
+                        : 'border-border-custom bg-surface hover:bg-offwhite/50'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -585,7 +585,7 @@ export default function AutomationDetailPage() {
           </div>
 
           {/* Cohort Tracking */}
-          <div className="bg-white rounded-xl border border-border-custom p-5 space-y-4">
+          <div className="bg-surface rounded-xl border border-border-custom p-5 space-y-4">
             <h2 className="font-display text-xl tracking-wide text-navy uppercase">Cohort Tracking</h2>
             <button
               type="button"
@@ -593,7 +593,7 @@ export default function AutomationDetailPage() {
               className={`w-full text-left rounded-lg border p-4 transition-colors ${
                 editCohortEnabled
                   ? 'border-accent bg-accent-wash'
-                  : 'border-border-custom bg-white hover:bg-offwhite/50'
+                  : 'border-border-custom bg-surface hover:bg-offwhite/50'
               }`}
             >
               <div className="flex items-center gap-3">
@@ -642,7 +642,7 @@ export default function AutomationDetailPage() {
             </button>
             <button
               onClick={cancelEditing}
-              className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-white rounded-lg"
+              className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-surface rounded-lg"
             >
               Cancel
             </button>
@@ -655,7 +655,7 @@ export default function AutomationDetailPage() {
         <>
           {/* Info Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-white rounded-xl border border-border-custom p-4">
+            <div className="bg-surface rounded-xl border border-border-custom p-4">
               <p className="text-xs text-text-light uppercase tracking-wider mb-1">Publication</p>
               <p className="font-display text-3xl text-navy">
                 {automation.publication ? (
@@ -665,13 +665,13 @@ export default function AutomationDetailPage() {
                 ) : '—'}
               </p>
             </div>
-            <div className="bg-white rounded-xl border border-border-custom p-4">
+            <div className="bg-surface rounded-xl border border-border-custom p-4">
               <p className="text-xs text-text-light uppercase tracking-wider mb-1">Schedule</p>
               <p className="text-sm font-medium text-navy mt-1">
                 {formatSchedule(automation.schedule_day, automation.schedule_hour, automation.schedule_timezone)}
               </p>
             </div>
-            <div className="bg-white rounded-xl border border-border-custom p-4">
+            <div className="bg-surface rounded-xl border border-border-custom p-4">
               <p className="text-xs text-text-light uppercase tracking-wider mb-1">Status</p>
               <p className="mt-1">
                 <span
@@ -685,14 +685,14 @@ export default function AutomationDetailPage() {
                 </span>
               </p>
             </div>
-            <div className="bg-white rounded-xl border border-border-custom p-4">
+            <div className="bg-surface rounded-xl border border-border-custom p-4">
               <p className="text-xs text-text-light uppercase tracking-wider mb-1">Total Runs</p>
               <p className="font-display text-3xl text-navy">{automation.runs.length}</p>
             </div>
           </div>
 
           {/* Run History */}
-          <div className="bg-white rounded-xl border border-border-custom overflow-hidden">
+          <div className="bg-surface rounded-xl border border-border-custom overflow-hidden">
             <div className="px-5 py-4 border-b border-border-custom">
               <h2 className="font-display text-xl tracking-wide text-navy uppercase">Run History</h2>
             </div>
@@ -764,7 +764,7 @@ export default function AutomationDetailPage() {
 
           {/* Snapshots */}
           {automation.snapshots.length > 0 && (
-            <div className="bg-white rounded-xl border border-border-custom overflow-hidden">
+            <div className="bg-surface rounded-xl border border-border-custom overflow-hidden">
               <div className="px-5 py-4 border-b border-border-custom">
                 <h2 className="font-display text-xl tracking-wide text-navy uppercase">Snapshots</h2>
               </div>
