@@ -3,6 +3,7 @@ ALTER TABLE publications ADD COLUMN IF NOT EXISTS growth_client_id text;
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS sync_grouping text NOT NULL DEFAULT 'issue_number' CHECK (sync_grouping IN ('issue_number', 'week', 'day'));
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS sync_send_days jsonb NOT NULL DEFAULT '[]';
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS sync_enabled boolean NOT NULL DEFAULT false;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS sync_match_by text NOT NULL DEFAULT 'code' CHECK (sync_match_by IN ('code', 'name'));
 
 -- Webhook sync log for auditing pushes to 150growth
 CREATE TABLE IF NOT EXISTS webhook_sync_log (

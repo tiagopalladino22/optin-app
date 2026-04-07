@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
   // Get all publications with growth_client_id mapped
   let pubQuery = supabase
     .from('publications')
-    .select('code, name, growth_client_id, sync_grouping, sync_send_days, sync_enabled')
+    .select('code, name, growth_client_id, sync_grouping, sync_send_days, sync_enabled, sync_match_by')
     .not('growth_client_id', 'is', null)
 
   if (filterCode) pubQuery = pubQuery.eq('code', filterCode)
@@ -53,11 +53,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'No publications mapped to 150growth', synced: 0 })
   }
 
-  // Build publication mappings for the parser (name → code)
-  const pubMappings: PublicationMapping[] = publications.map((p) => ({
-    code: p.code,
-    name: p.name || p.code,
-  }))
+  // Build publication mappings for the parser
+  // Each pub tells the parser what string to look for in campaign names
+  const pubMappings: PublicationMapping[] = []
+  for (const p of publications) {
+    // Always add code as a match option
+    pubMappings.push({ code: p.code, name: p.code })
+    // If match_by is 'name', also add the full name as a match option
+    if (p.sync_match_by === 'name' && p.name && p.name !== p.code) {
+      pubMappings.push({ code: p.code, name: p.name })
+    }
+  }
 
   const pubMap = new Map<string, { growthClientId: string; grouping: string }>()
   for (const pub of publications) {

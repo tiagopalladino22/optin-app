@@ -11,6 +11,7 @@ interface Publication {
   sync_grouping: 'issue_number' | 'week' | 'day'
   sync_send_days: string[]
   sync_enabled: boolean
+  sync_match_by: 'code' | 'name'
   created_at: string
 }
 
@@ -310,6 +311,41 @@ export default function PublicationsPage() {
                     {/* Sync settings — only show if mapped */}
                     {isMapped && (
                       <>
+                        {/* Match by */}
+                        <div>
+                          <label className="block text-xs text-text-light uppercase tracking-wider font-medium mb-2">
+                            Campaign Name Matching
+                          </label>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => updatePub(pub.id, { sync_match_by: 'code' } as Partial<Publication>)}
+                              className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                                pub.sync_match_by === 'code' || !pub.sync_match_by
+                                  ? 'bg-accent text-white'
+                                  : 'bg-offwhite text-text-mid hover:bg-border-custom'
+                              }`}
+                            >
+                              By code ({pub.code})
+                            </button>
+                            <button
+                              onClick={() => updatePub(pub.id, { sync_match_by: 'name' } as Partial<Publication>)}
+                              className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                                pub.sync_match_by === 'name'
+                                  ? 'bg-accent text-white'
+                                  : 'bg-offwhite text-text-mid hover:bg-border-custom'
+                              }`}
+                            >
+                              By name ({pub.name})
+                            </button>
+                          </div>
+                          <p className="text-xs text-text-light mt-1.5">
+                            {pub.sync_match_by === 'name'
+                              ? `Campaigns starting with "${pub.name}" will be matched (e.g., "${pub.name} - Issue #1 - ...")`
+                              : `Campaigns starting with "${pub.code}" will be matched (e.g., "${pub.code} - Issue #1 - ...")`
+                            }
+                          </p>
+                        </div>
+
                         {/* Grouping */}
                         <div>
                           <label className="block text-xs text-text-light uppercase tracking-wider font-medium mb-2">

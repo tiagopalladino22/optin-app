@@ -86,7 +86,7 @@ export async function PUT(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { id, code, name, growth_client_id, sync_grouping, sync_send_days, sync_enabled } = body
+  const { id, code, name, growth_client_id, sync_grouping, sync_send_days, sync_enabled, sync_match_by } = body
 
   if (!id) {
     return NextResponse.json({ error: 'Publication ID is required' }, { status: 400 })
@@ -110,6 +110,7 @@ export async function PUT(request: NextRequest) {
   if (sync_grouping !== undefined) updates.sync_grouping = sync_grouping
   if (sync_send_days !== undefined) updates.sync_send_days = sync_send_days
   if (sync_enabled !== undefined) updates.sync_enabled = sync_enabled
+  if (sync_match_by !== undefined) updates.sync_match_by = sync_match_by
 
   const { data, error } = await supabase
     .from('publications')
