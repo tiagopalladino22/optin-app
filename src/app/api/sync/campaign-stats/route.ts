@@ -32,27 +32,41 @@ export async function POST(request: NextRequest) {
 
   const supabase = await createServiceRoleClient()
 
+  // Optional: filter to a single publication
+  let filterCode: string | null = null
+  try {
+    const body = await request.json().catch(() => null)
+    if (body?.publication_code) filterCode = body.publication_code.toUpperCase()
+  } catch { /* no body */ }
+
   // Get all publications with growth_client_id mapped
-  const { data: publications } = await supabase
+  let pubQuery = supabase
     .from('publications')
-    .select('code, growth_client_id')
+    .select('code, growth_client_id, sync_grouping, sync_send_days, sync_enabled')
     .not('growth_client_id', 'is', null)
+
+  if (filterCode) pubQuery = pubQuery.eq('code', filterCode)
+
+  const { data: publications } = await pubQuery
 
   if (!publications || publications.length === 0) {
     return NextResponse.json({ message: 'No publications mapped to 150growth', synced: 0 })
   }
 
-  const pubMap = new Map<string, string>()
+  const pubMap = new Map<string, { growthClientId: string; grouping: string }>()
   for (const pub of publications) {
     if (pub.growth_client_id) {
-      pubMap.set(pub.code.toUpperCase(), pub.growth_client_id)
+      pubMap.set(pub.code.toUpperCase(), {
+        growthClientId: pub.growth_client_id,
+        grouping: pub.sync_grouping || 'issue_number',
+      })
     }
   }
 
   // Fetch finished campaigns from last 48 hours
   const campaigns = await fetchRecentCampaigns()
 
-  // Parse and group by issue
+  // Parse and group by issue using each pub's grouping setting
   const issueGroups = new Map<string, {
     parsed: ReturnType<typeof parseCampaignName>
     campaigns: CampaignData[]
@@ -63,12 +77,28 @@ export async function POST(request: NextRequest) {
     const parsed = parseCampaignName(campaign.name)
     if (!parsed) continue
 
-    const growthClientId = pubMap.get(parsed.publicationCode)
-    if (!growthClientId) continue
+    const pubConfig = pubMap.get(parsed.publicationCode)
+    if (!pubConfig) continue
 
-    const key = getIssueGroupKey(parsed)
+    const { growthClientId, grouping } = pubConfig
+
+    // Build group key based on the publication's grouping setting
+    let key: string
+    if (grouping === 'day') {
+      key = `${parsed.publicationCode}:${parsed.sendDate}`
+    } else if (grouping === 'week') {
+      // Group by ISO week: get Monday of the send date's week
+      const d = new Date(parsed.sendDate)
+      const day = d.getDay()
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+      const monday = new Date(d.setDate(diff))
+      key = `${parsed.publicationCode}:w${monday.toISOString().slice(0, 10)}`
+    } else {
+      // Default: group by issue number (or fall back to date)
+      key = getIssueGroupKey(parsed)
+    }
     if (!issueGroups.has(key)) {
-      issueGroups.set(key, { parsed, campaigns: [], growthClientId })
+      issueGroups.set(key, { parsed, campaigns: [], growthClientId: growthClientId })
     }
     issueGroups.get(key)!.campaigns.push(campaign)
   }
