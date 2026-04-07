@@ -138,7 +138,7 @@ export default function PublicationsPage() {
       const res = await fetch('/api/sync/campaign-stats', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ publication_code: pub.code }),
+        body: JSON.stringify({ publication_code: pub.code, force: true }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Sync failed')

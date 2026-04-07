@@ -34,10 +34,15 @@ export async function POST(request: NextRequest) {
 
   // Optional: filter to a single publication
   let filterCode: string | null = null
+  let force = false
   try {
-    const body = await request.json().catch(() => null)
-    if (body?.publication_code) filterCode = body.publication_code.toUpperCase()
-  } catch { /* no body */ }
+    const text = await request.text()
+    if (text) {
+      const body = JSON.parse(text)
+      if (body?.publication_code) filterCode = body.publication_code.toUpperCase()
+      if (body?.force) force = true
+    }
+  } catch { /* no body or invalid JSON */ }
 
   // Get all publications with growth_client_id mapped
   let pubQuery = supabase
@@ -151,7 +156,7 @@ export async function POST(request: NextRequest) {
       : parsed.sendDate
 
     const syncKey = `${parsed.issueName}:${earliestDate}`
-    if (alreadySynced.has(syncKey)) {
+    if (!force && alreadySynced.has(syncKey)) {
       results.push({ issue: parsed.issueName, status: 'already synced' })
       continue
     }
