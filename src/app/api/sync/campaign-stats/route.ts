@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
       .select('publication_code, payload')
       .eq('sync_type', 'campaign_stats')
       .eq('status', 'success')
-      .gte('created_at', new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
+      .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
 
     if (logs) {
       for (const log of logs) {
@@ -130,7 +130,15 @@ export async function POST(request: NextRequest) {
     const { parsed, campaigns: groupCampaigns, growthClientId } = group
     if (!parsed) continue
 
-    const syncKey = `${parsed.issueName}:${parsed.sendDate}`
+    // Use earliest send date in the group for the kpi_entry
+    const allParsed = groupCampaigns
+      .map((c) => parseCampaignName(c.name))
+      .filter(Boolean) as NonNullable<ReturnType<typeof parseCampaignName>>[]
+    const earliestDate = allParsed.length > 0
+      ? allParsed.reduce((earliest, p) => p.sendDate < earliest ? p.sendDate : earliest, allParsed[0].sendDate)
+      : parsed.sendDate
+
+    const syncKey = `${parsed.issueName}:${earliestDate}`
     if (alreadySynced.has(syncKey)) {
       results.push({ issue: parsed.issueName, status: 'already synced' })
       continue
@@ -199,7 +207,7 @@ export async function POST(request: NextRequest) {
         data: {
           issue_name: parsed.issueName,
           issue_number: parsed.issueNumber,
-          send_date: parsed.sendDate,
+          send_date: earliestDate,
           recipients: totalSent,
           opens: totalOpens,
           clicks: totalClicks,
@@ -244,7 +252,7 @@ async function fetchRecentCampaigns(): Promise<CampaignData[]> {
     const data = await res.json()
     const results = data.data?.results || []
 
-    const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000)
+    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
     let foundOld = false
 
     for (const c of results) {
