@@ -7,6 +7,7 @@ interface Publication {
   client_id: string | null
   code: string
   name: string
+  growth_client_id: string | null
   created_at: string
 }
 
@@ -20,6 +21,7 @@ export default function PublicationsPage() {
   const [saving, setSaving] = useState(false)
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
+  const [savingGrowthId, setSavingGrowthId] = useState<string | null>(null)
 
   async function fetchPublications() {
     try {
@@ -76,6 +78,29 @@ export default function PublicationsPage() {
       setError(err instanceof Error ? err.message : 'Failed to create publication')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleGrowthClientIdChange(pub: Publication, value: string) {
+    clearMessages()
+    setSavingGrowthId(pub.id)
+    try {
+      const res = await fetch('/api/publications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: pub.id, growth_client_id: value.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setPublications((prev) =>
+        prev.map((p) => (p.id === pub.id ? { ...p, growth_client_id: data.data.growth_client_id } : p))
+      )
+      setSuccess('Growth Client ID updated')
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update Growth Client ID')
+    } finally {
+      setSavingGrowthId(null)
     }
   }
 
@@ -203,6 +228,7 @@ export default function PublicationsPage() {
               <tr className="border-b border-border-custom bg-offwhite">
                 <th className="text-left px-4 py-3 text-text-light uppercase text-xs tracking-wider font-medium">Code</th>
                 <th className="text-left px-4 py-3 text-text-light uppercase text-xs tracking-wider font-medium">Name</th>
+                <th className="text-left px-4 py-3 text-text-light uppercase text-xs tracking-wider font-medium">150growth Client ID</th>
                 <th className="text-left px-4 py-3 text-text-light uppercase text-xs tracking-wider font-medium">Created</th>
                 <th className="text-right px-4 py-3 text-text-light uppercase text-xs tracking-wider font-medium">Actions</th>
               </tr>
@@ -217,6 +243,26 @@ export default function PublicationsPage() {
                   </td>
                   <td className="px-4 py-3 text-navy font-medium">
                     {pub.name}
+                  </td>
+                  <td className="px-4 py-3">
+                    <input
+                      type="text"
+                      defaultValue={pub.growth_client_id || ''}
+                      placeholder="UUID"
+                      disabled={savingGrowthId === pub.id}
+                      onBlur={(e) => {
+                        const val = e.target.value.trim()
+                        if (val !== (pub.growth_client_id || '')) {
+                          handleGrowthClientIdChange(pub, val)
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          (e.target as HTMLInputElement).blur()
+                        }
+                      }}
+                      className="w-[220px] px-2 py-1 border border-border-custom rounded text-navy font-mono text-xs bg-surface placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent disabled:opacity-50"
+                    />
                   </td>
                   <td className="px-4 py-3 text-text-light">
                     {new Date(pub.created_at).toLocaleDateString()}

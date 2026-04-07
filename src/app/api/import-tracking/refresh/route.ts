@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { createServiceRoleClient } from '@/lib/supabase-server'
 import { listmonkFetch, createClientListmonkFetch } from '@/lib/listmonk'
+import { pushToGrowth } from '@/lib/webhook-client'
 
 type FetchFn = (path: string, options?: RequestInit) => Promise<Response>
 
@@ -91,6 +92,9 @@ export async function POST() {
             })
             .eq('id', record.id)
           results.push({ id: record.id, list_id: listId, week, status: 'completed' })
+
+          // Push completed tracking to 150growth
+          await pushImportTracking(supabase, record, remainingSubs)
         } else {
           results.push({ id: record.id, list_id: listId, week, status: 'too early' })
         }
@@ -120,4 +124,52 @@ async function getRemainingSubscribers(fetchFn: FetchFn, listId: number): Promis
   if (!res.ok) throw new Error(`Listmonk query failed: ${res.status}`)
   const data = await res.json()
   return data.data?.total ?? 0
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function pushImportTracking(supabase: any, record: any, remainingSubs: number) {
+  if (!record.publication_code) return
+
+  try {
+    const { data: pub } = await supabase
+      .from('publications')
+      .select('growth_client_id')
+      .eq('code', record.publication_code)
+      .not('growth_client_id', 'is', null)
+      .limit(1)
+      .single()
+
+    if (!pub?.growth_client_id) return
+
+    const imported = record.imported_count || 0
+    const sends = []
+    for (let i = 1; i <= 4; i++) {
+      const openers = record[`week${i}_opens`]
+      if (openers !== null && openers !== undefined) {
+        sends.push({
+          send_number: i,
+          openers,
+          open_rate: imported > 0 ? parseFloat(((openers / imported) * 100).toFixed(1)) : 0,
+          confirmed: true,
+        })
+      }
+    }
+
+    await pushToGrowth({
+      type: 'import_tracking',
+      client_id: pub.growth_client_id,
+      data: {
+        name: record.list_name,
+        import_date: record.import_date,
+        week_number: 0,
+        imported,
+        total_openers: record.week4_opens || record.week3_opens || record.week2_opens || record.week1_opens || 0,
+        purged: imported - remainingSubs,
+        status: 'complete',
+        sends,
+      },
+    }, record.publication_code)
+  } catch (err) {
+    console.error('[ImportTracking] Failed to push to 150growth:', err)
+  }
 }

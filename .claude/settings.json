@@ -14,7 +14,8 @@
       "Bash(curl -s \"https://optin150.com/api/subscribers?per_page=0&query=subscribers.id%20IN%20\\(SELECT%20subscriber_id%20FROM%20link_clicks%20WHERE%20campaign_id%3D260\\)\" -u $LISTMONK_USERNAME:$LISTMONK_PASSWORD)",
       "Bash(echo \"URL: $LISTMONK_URL\")",
       "Bash(echo \"User: $LISTMONK_USERNAME\")",
-      "Bash(grep -r \"subscriber\" /Users/tiagopalladino/optin-app/src/app/api/listmonk/[...path]/route.ts)"
+      "Bash(grep -r \"subscriber\" /Users/tiagopalladino/optin-app/src/app/api/listmonk/[...path]/route.ts)",
+      "Read(//Users/tiagopalladino/optin-platform/src/app/**)"
     ]
   }
 }
