@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase-server'
-import { listmonkFetch } from '@/lib/listmonk'
+import { listmonkFetch, createClientListmonkFetch } from '@/lib/listmonk'
 
 // Map URL path segments to resource types for filtering
 const RESOURCE_TYPE_MAP: Record<string, string> = {
@@ -64,6 +64,66 @@ function invalidateCache(resourceSegment: string) {
     if (key.startsWith(resourceSegment)) keysToDelete.push(key)
   })
   keysToDelete.forEach((key) => cache.delete(key))
+}
+
+// Fetch lists/campaigns from all client-specific Listmonk instances (for admins only)
+// Returns the merged results, prefixed with an instance tag for uniqueness
+async function fetchFromClientInstances(
+  fullPath: string,
+  fetchOptions: RequestInit,
+): Promise<Record<string, unknown>[]> {
+  const supabase = await createServiceRoleClient()
+  const { data: clients } = await supabase
+    .from('clients')
+    .select('id, name, listmonk_url, listmonk_username, listmonk_password')
+    .not('listmonk_url', 'is', null)
+    .not('listmonk_username', 'is', null)
+    .not('listmonk_password', 'is', null)
+
+  if (!clients || clients.length === 0) return []
+
+  const allResults: Record<string, unknown>[] = []
+
+  for (const client of clients) {
+    if (!client.listmonk_url || !client.listmonk_username || !client.listmonk_password) continue
+    try {
+      const clientFetch = createClientListmonkFetch({
+        url: client.listmonk_url,
+        username: client.listmonk_username,
+        password: client.listmonk_password,
+      })
+
+      // Fetch all pages from this instance
+      let page = 1
+      while (true) {
+        const pathWithPage = fullPath.includes('page=')
+          ? fullPath.replace(/page=\d+/, `page=${page}`)
+          : `${fullPath}${fullPath.includes('?') ? '&' : '?'}page=${page}&per_page=100`
+
+        const res = await clientFetch(pathWithPage, fetchOptions)
+        if (!res.ok) break
+        const data = await res.json()
+        const results = data?.data?.results || []
+
+        // Tag each result with the client name so admins know which instance it's from
+        for (const item of results) {
+          allResults.push({
+            ...item,
+            _instance: client.name,
+            _instance_id: client.id,
+          })
+        }
+
+        if (results.length < 100) break
+        page++
+        if (page > 20) break // safety
+      }
+    } catch (err) {
+      console.error(`[Multi-instance] Failed to fetch from ${client.name}:`, err)
+    }
+  }
+
+  return allResults
 }
 
 async function getClientResources(clientId: string, resourceType?: string) {
@@ -189,8 +249,23 @@ async function handleProxy(
     }
   }
 
-  // Admins see everything; clients get filtered
+  // Admins see everything from ALL instances (default + client-specific)
   if (session.role === 'admin') {
+    // Only merge additional instances for list/campaign GET requests
+    if (method === 'GET' && (resourceType === 'list' || resourceType === 'campaign')) {
+      try {
+        const extraResults = await fetchFromClientInstances(fullPath, fetchOptions)
+        if (extraResults.length > 0) {
+          const typedData = data as { data?: { results?: Record<string, unknown>[]; total?: number } }
+          if (typedData.data?.results) {
+            typedData.data.results.push(...extraResults)
+            typedData.data.total = typedData.data.results.length
+          }
+        }
+      } catch (err) {
+        console.error('[Multi-instance] Merge failed:', err)
+      }
+    }
     return NextResponse.json(data, { status })
   }
 
