@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { listmonkFetch } from '@/lib/listmonk'
+import { listmonkFetch, createClientListmonkFetch } from '@/lib/listmonk'
+import { createServiceRoleClient } from '@/lib/supabase-server'
 
-// Cache unique stats for 60 seconds
-const cache = new Map<number, { uniqueOpens: number; uniqueClicks: number; unsubs: number; expires: number }>()
+type FetchFn = (path: string, options?: RequestInit) => Promise<Response>
+
+// Cache unique stats for 60 seconds (keyed by instance:id)
+const cache = new Map<string, { uniqueOpens: number; uniqueClicks: number; unsubs: number; expires: number }>()
 const CACHE_TTL = 60_000
 
-// GET /api/campaigns/unique-stats?ids=260,261,262
+// GET /api/campaigns/unique-stats?ids=260,261,262&instance=xxx
 export async function GET(request: NextRequest) {
   const session = await getSession()
   if (!session) {
@@ -23,12 +26,33 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'No valid campaign IDs' }, { status: 400 })
   }
 
+  // Optional instance override
+  const instanceId = request.nextUrl.searchParams.get('instance')
+  let fetchFn: FetchFn = listmonkFetch
+  if (instanceId && session.role === 'admin') {
+    const svc = await createServiceRoleClient()
+    const { data: client } = await svc
+      .from('clients')
+      .select('listmonk_url, listmonk_username, listmonk_password')
+      .eq('id', instanceId)
+      .single()
+    if (client?.listmonk_url && client?.listmonk_username && client?.listmonk_password) {
+      fetchFn = createClientListmonkFetch({
+        url: client.listmonk_url,
+        username: client.listmonk_username,
+        password: client.listmonk_password,
+      })
+    }
+  }
+  const cacheKeyPrefix = instanceId || 'default'
+
   const results: Record<number, { uniqueOpens: number; uniqueClicks: number; unsubs: number }> = {}
   const uncachedIds: number[] = []
   const now = Date.now()
 
   for (const id of campaignIds) {
-    const cached = cache.get(id)
+    const cacheKey = `${cacheKeyPrefix}:${id}`
+    const cached = cache.get(cacheKey)
     if (cached && now < cached.expires) {
       results[id] = { uniqueOpens: cached.uniqueOpens, uniqueClicks: cached.uniqueClicks, unsubs: cached.unsubs }
     } else {
@@ -41,7 +65,7 @@ export async function GET(request: NextRequest) {
     const campaignDetails = await Promise.all(
       uncachedIds.map(async (id) => {
         try {
-          const res = await listmonkFetch(`campaigns/${id}`)
+          const res = await fetchFn(`campaigns/${id}`)
           if (!res.ok) return { id, lists: [] as number[], sentAt: '' }
           const data = await res.json()
           const c = data.data
@@ -82,13 +106,13 @@ export async function GET(request: NextRequest) {
           const window = timeWindows[id]
 
           const [opens, clicks, unsubs] = await Promise.all([
-            getUniqueCount('campaign_views', id),
-            getUniqueCount('link_clicks', id),
-            detail && window ? getUnsubCount(detail.lists, window.from, window.to) : Promise.resolve(0),
+            getUniqueCount(fetchFn, 'campaign_views', id),
+            getUniqueCount(fetchFn, 'link_clicks', id),
+            detail && window ? getUnsubCount(fetchFn, detail.lists, window.from, window.to) : Promise.resolve(0),
           ])
 
           results[id] = { uniqueOpens: opens, uniqueClicks: clicks, unsubs }
-          cache.set(id, { uniqueOpens: opens, uniqueClicks: clicks, unsubs, expires: now + CACHE_TTL })
+          cache.set(`${cacheKeyPrefix}:${id}`, { uniqueOpens: opens, uniqueClicks: clicks, unsubs, expires: now + CACHE_TTL })
         })
       )
     }
@@ -104,10 +128,10 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ data: results })
 }
 
-async function getUniqueCount(table: string, campaignId: number): Promise<number> {
+async function getUniqueCount(fetchFn: FetchFn, table: string, campaignId: number): Promise<number> {
   try {
     const query = `subscribers.id IN (SELECT subscriber_id FROM ${table} WHERE campaign_id=${campaignId})`
-    const res = await listmonkFetch(
+    const res = await fetchFn(
       `subscribers?per_page=0&query=${encodeURIComponent(query)}`
     )
     if (!res.ok) return 0
@@ -118,14 +142,14 @@ async function getUniqueCount(table: string, campaignId: number): Promise<number
   }
 }
 
-async function getUnsubCount(listIds: number[], from: string, to: string): Promise<number> {
+async function getUnsubCount(fetchFn: FetchFn, listIds: number[], from: string, to: string): Promise<number> {
   if (listIds.length === 0 || !from) return 0
   try {
     const listFilter = listIds.length === 1
       ? `list_id = ${listIds[0]}`
       : `list_id IN (${listIds.join(',')})`
     const query = `subscribers.id IN (SELECT subscriber_id FROM subscriber_lists WHERE ${listFilter} AND status = 'unsubscribed' AND updated_at >= '${from}' AND updated_at < '${to}')`
-    const res = await listmonkFetch(
+    const res = await fetchFn(
       `subscribers?per_page=0&query=${encodeURIComponent(query)}`
     )
     if (!res.ok) return 0

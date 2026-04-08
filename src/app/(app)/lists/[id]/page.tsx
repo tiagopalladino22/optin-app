@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import CsvImport from '@/components/lists/CsvImport'
 
@@ -18,13 +18,16 @@ interface ListDetail {
 
 export default function ListDetailPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const [list, setList] = useState<ListDetail | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function fetchList() {
       try {
-        const res = await fetch(`/api/listmonk/lists/${params.id}`)
+        const instance = searchParams.get('instance')
+        const instanceQuery = instance ? `?instance=${instance}` : ''
+        const res = await fetch(`/api/listmonk/lists/${params.id}${instanceQuery}`)
         const data = await res.json()
         setList(data.data)
       } catch (err) {
@@ -34,7 +37,7 @@ export default function ListDetailPage() {
       }
     }
     fetchList()
-  }, [params.id])
+  }, [params.id, searchParams])
 
   if (loading) {
     return (

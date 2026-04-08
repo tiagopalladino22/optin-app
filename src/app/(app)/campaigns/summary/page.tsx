@@ -39,6 +39,10 @@ function SummaryContent() {
     return param ? param.split(',').map(Number).filter(Boolean) : []
   }, [searchParams])
 
+  const instanceId = useMemo(() => searchParams.get('instance'), [searchParams])
+  const instanceQuery = instanceId ? `?instance=${instanceId}` : ''
+  const instanceParam = instanceId ? `&instance=${instanceId}` : ''
+
   useEffect(() => {
     if (ids.length === 0) {
       setLoading(false)
@@ -49,7 +53,7 @@ function SummaryContent() {
       try {
         // Fetch campaign details in parallel
         const detailPromises = ids.map((id) =>
-          fetch(`/api/listmonk/campaigns/${id}`)
+          fetch(`/api/listmonk/campaigns/${id}${instanceQuery}`)
             .then((r) => r.json())
             .then((d) => d.data)
             .catch(() => null)
@@ -57,7 +61,7 @@ function SummaryContent() {
         const details = (await Promise.all(detailPromises)).filter(Boolean)
 
         // Fetch unique stats in one batch
-        const uniqueRes = await fetch(`/api/campaigns/unique-stats?ids=${ids.join(',')}`)
+        const uniqueRes = await fetch(`/api/campaigns/unique-stats?ids=${ids.join(',')}${instanceParam}`)
         const uniqueData = await uniqueRes.json()
         const uniqueMap = uniqueData.data || {}
 
@@ -87,7 +91,7 @@ function SummaryContent() {
     }
 
     fetchAll()
-  }, [ids])
+  }, [ids, instanceQuery, instanceParam])
 
   // Aggregates
   const totals = useMemo(() => {

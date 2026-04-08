@@ -10,7 +10,7 @@ import { useData } from '@/lib/DataProvider'
 const PER_PAGE = 10
 
 export default function CampaignsPage() {
-  const { campaigns, campaignsLoading } = useData()
+  const { campaigns, campaignsLoading, selectedInstanceId } = useData()
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
@@ -71,7 +71,8 @@ export default function CampaignsPage() {
               <button
                 onClick={() => {
                   const ids = Array.from(selectedIds).join(',')
-                  router.push(`/campaigns/summary?ids=${ids}`)
+                  const instanceParam = selectedInstanceId ? `&instance=${selectedInstanceId}` : ''
+                  router.push(`/campaigns/summary?ids=${ids}${instanceParam}`)
                 }}
                 className="px-4 py-2 border border-accent text-accent hover:bg-accent-wash rounded-lg font-medium text-sm transition-colors shrink-0"
               >
@@ -80,7 +81,9 @@ export default function CampaignsPage() {
               <button
                 onClick={() => {
                   const ids = Array.from(selectedIds).join(',')
-                  router.push(`/campaigns/${Array.from(selectedIds)[0]}?queue=${ids}`)
+                  const firstId = Array.from(selectedIds)[0]
+                  const instanceParam = selectedInstanceId ? `&instance=${selectedInstanceId}` : ''
+                  router.push(`/campaigns/${firstId}?queue=${ids}${instanceParam}`)
                 }}
                 className="px-4 py-2 bg-accent text-white hover:bg-accent-bright rounded-lg font-medium text-sm transition-colors shrink-0"
               >
@@ -148,7 +151,10 @@ export default function CampaignsPage() {
                       />
                     </td>
                     <td className="px-4 py-3">
-                      <Link href={`/campaigns/${c.id}`} className="text-accent hover:text-accent-bright font-medium">
+                      <Link
+                        href={selectedInstanceId ? `/campaigns/${c.id}?instance=${selectedInstanceId}` : `/campaigns/${c.id}`}
+                        className="text-accent hover:text-accent-bright font-medium"
+                      >
                         {c.name}
                       </Link>
                     </td>

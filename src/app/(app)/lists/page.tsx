@@ -9,7 +9,7 @@ import { useData } from '@/lib/DataProvider'
 const PER_PAGE = 10
 
 export default function ListsPage() {
-  const { lists, listsLoading } = useData()
+  const { lists, listsLoading, selectedInstanceId } = useData()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
 
@@ -85,7 +85,10 @@ export default function ListsPage() {
                 {paginatedLists.map((list) => (
                   <tr key={list.id} className="border-b border-border-custom last:border-0 hover:bg-offwhite/50">
                     <td className="px-4 py-3">
-                      <Link href={`/lists/${list.id}`} className="text-accent hover:text-accent-bright font-medium">
+                      <Link
+                        href={selectedInstanceId ? `/lists/${list.id}?instance=${selectedInstanceId}` : `/lists/${list.id}`}
+                        className="text-accent hover:text-accent-bright font-medium"
+                      >
                         {list.name}
                       </Link>
                     </td>

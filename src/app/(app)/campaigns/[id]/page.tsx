@@ -49,8 +49,13 @@ export default function CampaignDetailPage() {
   const queuePosition = currentIndex >= 0 ? `${currentIndex + 1} of ${queueIds.length}` : null
 
   const navigateTo = useCallback((id: number) => {
+    const instance = searchParams.get('instance')
     const queue = searchParams.get('queue')
-    router.push(`/campaigns/${id}${queue ? `?queue=${queue}` : ''}`)
+    const params = new URLSearchParams()
+    if (queue) params.set('queue', queue)
+    if (instance) params.set('instance', instance)
+    const qs = params.toString()
+    router.push(`/campaigns/${id}${qs ? `?${qs}` : ''}`)
   }, [router, searchParams])
 
   // Keyboard navigation
@@ -76,12 +81,16 @@ export default function CampaignDetailPage() {
 
   async function fetchCampaign() {
     try {
-      const res = await fetch(`/api/listmonk/campaigns/${params.id}`)
+      const instance = searchParams.get('instance')
+      const instanceQuery = instance ? `?instance=${instance}` : ''
+      const instanceParam = instance ? `&instance=${instance}` : ''
+
+      const res = await fetch(`/api/listmonk/campaigns/${params.id}${instanceQuery}`)
       const data = await res.json()
       setCampaign(data.data)
 
       if (data.data?.status === 'finished' || data.data?.status === 'running') {
-        const statsRes = await fetch(`/api/campaigns/unique-stats?ids=${params.id}`)
+        const statsRes = await fetch(`/api/campaigns/unique-stats?ids=${params.id}${instanceParam}`)
         const statsData = await statsRes.json()
         if (statsData.data?.[params.id as string]) {
           setUniqueStats(statsData.data[params.id as string])
@@ -98,7 +107,9 @@ export default function CampaignDetailPage() {
     if (!confirm('Are you sure you want to start this campaign?')) return
     setSending(true)
     try {
-      await fetch(`/api/listmonk/campaigns/${params.id}/status`, {
+      const instance = searchParams.get('instance')
+      const instanceQuery = instance ? `?instance=${instance}` : ''
+      await fetch(`/api/listmonk/campaigns/${params.id}/status${instanceQuery}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'running' }),
