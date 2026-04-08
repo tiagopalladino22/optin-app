@@ -170,9 +170,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       .then((r) => r.json())
       .then((data) => {
         const clientList = Array.isArray(data) ? data : data.data || []
-        // Only include clients with their own Listmonk instance
+        // Only include clients with FULL Listmonk credentials (url + username + password)
         const withInstance = clientList
-          .filter((c: { listmonk_url: string | null }) => c.listmonk_url)
+          .filter((c: { listmonk_url: string | null; listmonk_username: string | null; listmonk_password: string | null }) =>
+            c.listmonk_url && c.listmonk_username && c.listmonk_password
+          )
           .map((c: { id: string; name: string }) => ({ id: c.id, name: c.name }))
         setInstances(withInstance)
       })

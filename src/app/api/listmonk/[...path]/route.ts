@@ -43,10 +43,15 @@ function setCache(key: string, data: unknown, status: number) {
 }
 
 // Background revalidation — fetches fresh data without blocking the response
-function revalidateInBackground(key: string, fullPath: string, fetchOptions: RequestInit) {
+function revalidateInBackground(
+  key: string,
+  fullPath: string,
+  fetchOptions: RequestInit,
+  fetchFn: typeof listmonkFetch,
+) {
   if (revalidating.has(key)) return // already revalidating
   revalidating.add(key)
-  listmonkFetch(fullPath, fetchOptions)
+  fetchFn(fullPath, fetchOptions)
     .then(async (res) => {
       if (res.ok) {
         const data = await res.json()
@@ -160,6 +165,12 @@ async function handleProxy(
         password: client.listmonk_password,
       })
       instanceName = client.name
+    } else {
+      // Instance ID was passed but credentials are incomplete — return empty
+      console.warn(`[Proxy] Instance ${instanceId} (${client?.name}) has incomplete credentials`)
+      return NextResponse.json({
+        data: { results: [], total: 0, per_page: 0, page: 1 },
+      })
     }
   }
 
@@ -180,7 +191,7 @@ async function handleProxy(
       data = cached.data
       status = cached.status
       if (cached.isStale) {
-        revalidateInBackground(cacheKey, fullPath, fetchOptions)
+        revalidateInBackground(cacheKey, fullPath, fetchOptions, doFetch)
       }
     } else {
       try {
