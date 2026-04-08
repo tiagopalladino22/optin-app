@@ -51,33 +51,33 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      const importDate = new Date(record.import_date)
-      const now = new Date()
-      const daysSinceImport = Math.floor(
-        (now.getTime() - importDate.getTime()) / (1000 * 60 * 60 * 24)
-      )
-      const week = Math.floor(daysSinceImport / 7) + 1
       const listId = record.list_id
 
-      if (week >= 1 && week <= 4) {
-        const weekColumn = `week${week}_opens`
-        const uniqueOpens = await getUniqueOpens(fetchFn, listId)
+      // Get campaigns sent to this list after import date
+      const campaignIds = await getCampaignsAfterImport(fetchFn, listId, record.import_date)
+
+      if (campaignIds.length === 0) {
+        results.push({ id: record.id, list_id: listId, week: 0, status: 'no sends yet' })
+        continue
+      }
+
+      // Cumulative unique openers for first N campaigns
+      const updates: Record<string, number> = {}
+      const maxWeek = Math.min(campaignIds.length, 4)
+      for (let w = 1; w <= maxWeek; w++) {
+        const firstN = campaignIds.slice(0, w)
+        const opens = await getUniqueOpensForCampaigns(fetchFn, listId, firstN)
+        updates[`week${w}_opens`] = opens
+      }
+
+      if (Object.keys(updates).length > 0) {
         await supabase
           .from('import_tracking')
-          .update({ [weekColumn]: uniqueOpens, updated_at: new Date().toISOString() })
+          .update({ ...updates, updated_at: new Date().toISOString() })
           .eq('id', record.id)
-        results.push({ id: record.id, list_id: listId, week, status: `updated ${weekColumn}` })
-      } else if (week > 4) {
-        for (let w = 1; w <= 4; w++) {
-          const col = `week${w}_opens`
-          if (record[col] === null || record[col] === undefined) {
-            const uniqueOpens = await getUniqueOpens(fetchFn, listId)
-            await supabase
-              .from('import_tracking')
-              .update({ [col]: uniqueOpens, updated_at: new Date().toISOString() })
-              .eq('id', record.id)
-          }
-        }
+      }
+
+      if (campaignIds.length >= 4) {
         const remainingSubs = await getRemainingSubscribers(fetchFn, listId)
         await supabase
           .from('import_tracking')
@@ -87,9 +87,14 @@ export async function GET(request: NextRequest) {
             updated_at: new Date().toISOString(),
           })
           .eq('id', record.id)
-        results.push({ id: record.id, list_id: listId, week, status: 'completed' })
+        results.push({ id: record.id, list_id: listId, week: 4, status: `completed (${campaignIds.length} sends)` })
       } else {
-        results.push({ id: record.id, list_id: listId, week, status: 'too early' })
+        results.push({
+          id: record.id,
+          list_id: listId,
+          week: maxWeek,
+          status: `updated weeks 1-${maxWeek} (${campaignIds.length} sends)`,
+        })
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
@@ -103,8 +108,36 @@ export async function GET(request: NextRequest) {
   })
 }
 
-async function getUniqueOpens(fetchFn: FetchFn, listId: number): Promise<number> {
-  const query = `subscribers.id IN (SELECT subscriber_id FROM campaign_views WHERE campaign_id IN (SELECT campaign_id FROM campaign_lists WHERE list_id = ${listId})) AND subscribers.id IN (SELECT subscriber_id FROM subscriber_lists WHERE list_id = ${listId})`
+async function getCampaignsAfterImport(fetchFn: FetchFn, listId: number, importDate: string): Promise<number[]> {
+  const campaignDates: { id: number; date: string }[] = []
+  let page = 1
+  while (true) {
+    const res = await fetchFn(`campaigns?status=finished&per_page=100&page=${page}`)
+    if (!res.ok) break
+    const data = await res.json()
+    const results = data.data?.results || []
+    for (const c of results) {
+      const targetsList = (c.lists || []).some((l: { id: number }) => l.id === listId)
+      if (!targetsList) continue
+      const sendDate = c.started_at || c.created_at
+      if (!sendDate || sendDate < importDate) continue
+      campaignDates.push({ id: c.id, date: sendDate })
+    }
+    if (results.length < 100) break
+    page++
+  }
+  campaignDates.sort((a, b) => a.date.localeCompare(b.date))
+  return campaignDates.map((c) => c.id)
+}
+
+async function getUniqueOpensForCampaigns(
+  fetchFn: FetchFn,
+  listId: number,
+  campaignIds: number[],
+): Promise<number> {
+  if (campaignIds.length === 0) return 0
+  const idList = campaignIds.join(',')
+  const query = `subscribers.id IN (SELECT subscriber_id FROM campaign_views WHERE campaign_id IN (${idList})) AND subscribers.id IN (SELECT subscriber_id FROM subscriber_lists WHERE list_id = ${listId})`
   const res = await fetchFn(`subscribers?per_page=0&query=${encodeURIComponent(query)}`)
   if (!res.ok) throw new Error(`Listmonk query failed: ${res.status}`)
   const data = await res.json()
