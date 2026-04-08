@@ -11,6 +11,7 @@ interface ListItem {
   optin: string
   subscriber_count: number
   created_at: string
+  _instance?: string
 }
 
 interface CampaignItem {
@@ -26,6 +27,12 @@ interface CampaignItem {
   bounces: number
   sent: number
   lists: { id: number; name: string }[]
+  _instance?: string
+}
+
+interface ClientInstance {
+  id: string
+  name: string
 }
 
 interface DataContextType {
@@ -37,6 +44,9 @@ interface DataContextType {
   userEmail: string | null
   refreshLists: () => Promise<void>
   refreshCampaigns: () => Promise<void>
+  instances: ClientInstance[]
+  selectedInstanceId: string | null
+  setSelectedInstanceId: (id: string | null) => void
 }
 
 const DataContext = createContext<DataContextType>({
@@ -48,16 +58,18 @@ const DataContext = createContext<DataContextType>({
   userEmail: null,
   refreshLists: async () => {},
   refreshCampaigns: async () => {},
+  instances: [],
+  selectedInstanceId: null,
+  setSelectedInstanceId: () => {},
 })
 
 export function useData() {
   return useContext(DataContext)
 }
 
-// Fetch all pages from a paginated Listmonk endpoint
-// onPage callback allows progressive rendering as pages arrive
 async function fetchAllPages<T>(
   basePath: string,
+  instanceId: string | null,
   onPage?: (results: T[]) => void
 ): Promise<T[]> {
   const allResults: T[] = []
@@ -66,23 +78,20 @@ async function fetchAllPages<T>(
 
   while (true) {
     try {
-      const res = await fetch(`/api/listmonk/${basePath}?per_page=${perPage}&page=${page}`)
+      const params = new URLSearchParams({ per_page: String(perPage), page: String(page) })
+      if (instanceId) params.set('instance', instanceId)
+      const res = await fetch(`/api/listmonk/${basePath}?${params.toString()}`)
       if (!res.ok) break
       const json = await res.json()
       const results = json.data?.results || []
       allResults.push(...results)
-
-      // Notify with results so far (enables progressive rendering)
       if (onPage) onPage([...allResults])
-
-      // If we got fewer than perPage, we've reached the last page
       if (results.length < perPage) break
       page++
     } catch {
       break
     }
   }
-
   return allResults
 }
 
@@ -93,32 +102,55 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [campaignsLoading, setCampaignsLoading] = useState(true)
   const [userRole, setUserRole] = useState<UserRole | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [instances, setInstances] = useState<ClientInstance[]>([])
+  const [selectedInstanceId, setSelectedInstanceIdState] = useState<string | null>(null)
+
+  // Persist selection in localStorage
+  const setSelectedInstanceId = useCallback((id: string | null) => {
+    setSelectedInstanceIdState(id)
+    if (typeof window !== 'undefined') {
+      if (id) localStorage.setItem('selectedInstanceId', id)
+      else localStorage.removeItem('selectedInstanceId')
+    }
+  }, [])
+
+  // Load saved selection on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('selectedInstanceId')
+      if (saved) setSelectedInstanceIdState(saved)
+    }
+  }, [])
 
   const refreshLists = useCallback(async () => {
+    setListsLoading(true)
+    setLists([])
     try {
-      await fetchAllPages<ListItem>('lists', (partial) => {
+      await fetchAllPages<ListItem>('lists', selectedInstanceId, (partial) => {
         setLists(partial)
-        setListsLoading(false) // Show data as soon as first page arrives
+        setListsLoading(false)
       })
     } catch {
       // ignore
     } finally {
       setListsLoading(false)
     }
-  }, [])
+  }, [selectedInstanceId])
 
   const refreshCampaigns = useCallback(async () => {
+    setCampaignsLoading(true)
+    setCampaigns([])
     try {
-      await fetchAllPages<CampaignItem>('campaigns', (partial) => {
+      await fetchAllPages<CampaignItem>('campaigns', selectedInstanceId, (partial) => {
         setCampaigns(partial)
-        setCampaignsLoading(false) // Show data as soon as first page arrives
+        setCampaignsLoading(false)
       })
     } catch {
       // ignore
     } finally {
       setCampaignsLoading(false)
     }
-  }, [])
+  }, [selectedInstanceId])
 
   // Fetch user role on mount
   useEffect(() => {
@@ -131,7 +163,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
       .catch(() => {})
   }, [])
 
-  // Preload both on mount
+  // Fetch available instances (admin only)
+  useEffect(() => {
+    if (userRole !== 'admin') return
+    fetch('/api/settings/clients')
+      .then((r) => r.json())
+      .then((data) => {
+        const clientList = Array.isArray(data) ? data : data.data || []
+        // Only include clients with their own Listmonk instance
+        const withInstance = clientList
+          .filter((c: { listmonk_url: string | null }) => c.listmonk_url)
+          .map((c: { id: string; name: string }) => ({ id: c.id, name: c.name }))
+        setInstances(withInstance)
+      })
+      .catch(() => {})
+  }, [userRole])
+
+  // Refetch data when instance changes
   useEffect(() => {
     refreshLists()
     refreshCampaigns()
@@ -139,7 +187,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   return (
     <DataContext.Provider
-      value={{ lists, campaigns, listsLoading, campaignsLoading, userRole, userEmail, refreshLists, refreshCampaigns }}
+      value={{
+        lists,
+        campaigns,
+        listsLoading,
+        campaignsLoading,
+        userRole,
+        userEmail,
+        refreshLists,
+        refreshCampaigns,
+        instances,
+        selectedInstanceId,
+        setSelectedInstanceId,
+      }}
     >
       {children}
     </DataContext.Provider>

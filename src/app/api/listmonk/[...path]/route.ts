@@ -66,66 +66,6 @@ function invalidateCache(resourceSegment: string) {
   keysToDelete.forEach((key) => cache.delete(key))
 }
 
-// Fetch lists/campaigns from all client-specific Listmonk instances (for admins only)
-// Returns the merged results, prefixed with an instance tag for uniqueness
-async function fetchFromClientInstances(
-  fullPath: string,
-  fetchOptions: RequestInit,
-): Promise<Record<string, unknown>[]> {
-  const supabase = await createServiceRoleClient()
-  const { data: clients } = await supabase
-    .from('clients')
-    .select('id, name, listmonk_url, listmonk_username, listmonk_password')
-    .not('listmonk_url', 'is', null)
-    .not('listmonk_username', 'is', null)
-    .not('listmonk_password', 'is', null)
-
-  if (!clients || clients.length === 0) return []
-
-  const allResults: Record<string, unknown>[] = []
-
-  for (const client of clients) {
-    if (!client.listmonk_url || !client.listmonk_username || !client.listmonk_password) continue
-    try {
-      const clientFetch = createClientListmonkFetch({
-        url: client.listmonk_url,
-        username: client.listmonk_username,
-        password: client.listmonk_password,
-      })
-
-      // Fetch all pages from this instance
-      let page = 1
-      while (true) {
-        const pathWithPage = fullPath.includes('page=')
-          ? fullPath.replace(/page=\d+/, `page=${page}`)
-          : `${fullPath}${fullPath.includes('?') ? '&' : '?'}page=${page}&per_page=100`
-
-        const res = await clientFetch(pathWithPage, fetchOptions)
-        if (!res.ok) break
-        const data = await res.json()
-        const results = data?.data?.results || []
-
-        // Tag each result with the client name so admins know which instance it's from
-        for (const item of results) {
-          allResults.push({
-            ...item,
-            _instance: client.name,
-            _instance_id: client.id,
-          })
-        }
-
-        if (results.length < 100) break
-        page++
-        if (page > 20) break // safety
-      }
-    } catch (err) {
-      console.error(`[Multi-instance] Failed to fetch from ${client.name}:`, err)
-    }
-  }
-
-  return allResults
-}
-
 async function getClientResources(clientId: string, resourceType?: string) {
   // Use service role client to bypass RLS — the proxy already verified auth
   const supabase = await createServiceRoleClient()
@@ -200,30 +140,55 @@ async function handleProxy(
     url.searchParams.set('page', '1')
   }
 
+  // Check for instance override (admin only) — lets admin pick which Listmonk to query
+  const instanceId = url.searchParams.get('instance')
+  url.searchParams.delete('instance') // don't forward to Listmonk
+
+  let customFetch: typeof listmonkFetch | null = null
+  let instanceName: string | null = null
+  if (instanceId && session.role === 'admin') {
+    const svc = await createServiceRoleClient()
+    const { data: client } = await svc
+      .from('clients')
+      .select('name, listmonk_url, listmonk_username, listmonk_password')
+      .eq('id', instanceId)
+      .single()
+    if (client?.listmonk_url && client?.listmonk_username && client?.listmonk_password) {
+      customFetch = createClientListmonkFetch({
+        url: client.listmonk_url,
+        username: client.listmonk_username,
+        password: client.listmonk_password,
+      })
+      instanceName = client.name
+    }
+  }
+
   const queryString = url.searchParams.toString()
   const fullPath = queryString ? `${pathStr}?${queryString}` : pathStr
+  // Cache key includes instance so different instances don't collide
+  const cacheKey = instanceId ? `${instanceId}:${fullPath}` : fullPath
 
   let data: unknown
   let status: number
 
+  const doFetch = customFetch || listmonkFetch
+
   if (method === 'GET') {
     // Stale-while-revalidate: serve cached data instantly, refresh in background
-    const cached = getCached(fullPath)
+    const cached = getCached(cacheKey)
     if (cached) {
       data = cached.data
       status = cached.status
-      // If stale, trigger background refresh (response is still instant)
       if (cached.isStale) {
-        revalidateInBackground(fullPath, fullPath, fetchOptions)
+        revalidateInBackground(cacheKey, fullPath, fetchOptions)
       }
     } else {
-      // No cache at all — must fetch (blocking)
       try {
-        const lmResponse = await listmonkFetch(fullPath, fetchOptions)
+        const lmResponse = await doFetch(fullPath, fetchOptions)
         data = await lmResponse.json()
         status = lmResponse.status
         if (status >= 200 && status < 300) {
-          setCache(fullPath, data, status)
+          setCache(cacheKey, data, status)
         }
       } catch (err) {
         console.error(`Listmonk fetch failed for ${fullPath}:`, err)
@@ -234,9 +199,8 @@ async function handleProxy(
       }
     }
   } else {
-    // Mutations: fetch directly and invalidate cache
     try {
-      const lmResponse = await listmonkFetch(fullPath, fetchOptions)
+      const lmResponse = await doFetch(fullPath, fetchOptions)
       data = await lmResponse.json()
       status = lmResponse.status
       invalidateCache(resourceSegment)
@@ -249,23 +213,19 @@ async function handleProxy(
     }
   }
 
-  // Admins see everything from ALL instances (default + client-specific)
-  if (session.role === 'admin') {
-    // Only merge additional instances for list/campaign GET requests
-    if (method === 'GET' && (resourceType === 'list' || resourceType === 'campaign')) {
-      try {
-        const extraResults = await fetchFromClientInstances(fullPath, fetchOptions)
-        if (extraResults.length > 0) {
-          const typedData = data as { data?: { results?: Record<string, unknown>[]; total?: number } }
-          if (typedData.data?.results) {
-            typedData.data.results.push(...extraResults)
-            typedData.data.total = typedData.data.results.length
-          }
-        }
-      } catch (err) {
-        console.error('[Multi-instance] Merge failed:', err)
-      }
+  // Tag results with instance name so UI can show which instance data came from
+  if (instanceName && session.role === 'admin') {
+    const typedData = data as { data?: { results?: Record<string, unknown>[] } }
+    if (typedData.data?.results) {
+      typedData.data.results = typedData.data.results.map((item) => ({
+        ...item,
+        _instance: instanceName,
+      }))
     }
+  }
+
+  // Admins see everything
+  if (session.role === 'admin') {
     return NextResponse.json(data, { status })
   }
 
