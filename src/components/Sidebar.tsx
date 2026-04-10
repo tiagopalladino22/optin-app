@@ -21,6 +21,8 @@ const navItems: NavItem[] = [
   { href: '/import', label: 'Import', icon: ImportIcon, adminOnly: true },
   { href: '/campaigns', label: 'Campaigns', icon: CampaignIcon },
   { href: '/segments', label: 'Segments', icon: SegmentIcon, adminOnly: true },
+  { href: '/sourcing', label: 'Sourcing', icon: SourcingIcon },
+  { href: '/sourcing/admin', label: 'Sourcing Queue', icon: SourcingIcon, adminOnly: true },
   { href: '/publications', label: 'Publications', icon: PublicationsIcon, adminOnly: true },
   { href: '/automations', label: 'Automations', icon: AutomationsIcon, adminOnly: true },
   { href: '/import-tracking', label: 'Import Tracking', icon: ImportTrackingIcon, adminOnly: true },
@@ -32,7 +34,7 @@ export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
-  const { userRole } = useData()
+  const { userRole, allowedSections } = useData()
   const { theme, toggleTheme } = useTheme()
 
   async function handleLogout() {
@@ -55,9 +57,31 @@ export default function Sidebar() {
 
       <nav className="flex-1 px-3 py-2 space-y-0.5">
         {navItems
-          .filter((item) => !item.adminOnly || userRole === 'admin')
+          .filter((item) => {
+            // Admin sees everything
+            if (userRole === 'admin') return true
+            // Admin-only items hidden for clients
+            if (item.adminOnly) return false
+            // If allowedSections is set, only show sections the admin enabled
+            if (allowedSections) {
+              const sectionKey = item.href.split('/').filter(Boolean)[0]
+              return allowedSections.includes(sectionKey)
+            }
+            return true
+          })
           .map((item) => {
-          const isActive = pathname.startsWith(item.href)
+          // isActive: this item's href is a prefix of the current path AND no other nav item
+          // has a more specific (longer) prefix match. Prevents `/sourcing` from highlighting
+          // when the user is on `/sourcing/admin`.
+          const isActive =
+            pathname.startsWith(item.href) &&
+            !navItems.some(
+              (other) =>
+                other.href !== item.href &&
+                other.href.length > item.href.length &&
+                other.href.startsWith(item.href) &&
+                pathname.startsWith(other.href)
+            )
           return (
             <Link
               key={item.href}
@@ -201,6 +225,14 @@ function AutomationsIcon({ active }: { active?: boolean }) {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--color-accent-bright)' : 'currentColor'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </svg>
+  )
+}
+
+function SourcingIcon({ active }: { active?: boolean }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--color-accent-bright)' : 'currentColor'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
   )
 }

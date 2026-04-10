@@ -62,7 +62,18 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { name, slug, owner_email, listmonk_url, listmonk_username, listmonk_password } = body
+  const {
+    name,
+    slug,
+    owner_email,
+    listmonk_url,
+    listmonk_username,
+    listmonk_password,
+    apollo_api_key,
+    sourcing_window_day_open,
+    sourcing_window_day_close,
+    allowed_sections,
+  } = body
 
   if (!name || !slug || !owner_email) {
     return NextResponse.json(
@@ -81,6 +92,16 @@ export async function POST(request: NextRequest) {
       listmonk_url: listmonk_url || process.env.LISTMONK_URL || null,
       listmonk_username: listmonk_username || null,
       listmonk_password: listmonk_password || null,
+      apollo_api_key: apollo_api_key || null,
+      sourcing_window_day_open:
+        sourcing_window_day_open === undefined || sourcing_window_day_open === null || sourcing_window_day_open === ''
+          ? null
+          : Number(sourcing_window_day_open),
+      sourcing_window_day_close:
+        sourcing_window_day_close === undefined || sourcing_window_day_close === null || sourcing_window_day_close === ''
+          ? null
+          : Number(sourcing_window_day_close),
+      ...(Array.isArray(allowed_sections) ? { allowed_sections } : {}),
     })
     .select()
     .single()
@@ -102,7 +123,19 @@ export async function PUT(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { id, name, slug, owner_email, listmonk_url, listmonk_username, listmonk_password } = body
+  const {
+    id,
+    name,
+    slug,
+    owner_email,
+    listmonk_url,
+    listmonk_username,
+    listmonk_password,
+    apollo_api_key,
+    sourcing_window_day_open,
+    sourcing_window_day_close,
+    allowed_sections,
+  } = body
 
   if (!id) {
     return NextResponse.json({ error: 'Client ID is required' }, { status: 400 })
@@ -115,6 +148,18 @@ export async function PUT(request: NextRequest) {
   if (listmonk_url !== undefined) updates.listmonk_url = listmonk_url || null
   if (listmonk_username !== undefined) updates.listmonk_username = listmonk_username || null
   if (listmonk_password !== undefined) updates.listmonk_password = listmonk_password || null
+  if (apollo_api_key !== undefined) updates.apollo_api_key = apollo_api_key || null
+  if (sourcing_window_day_open !== undefined) {
+    updates.sourcing_window_day_open =
+      sourcing_window_day_open === null || sourcing_window_day_open === '' ? null : Number(sourcing_window_day_open)
+  }
+  if (sourcing_window_day_close !== undefined) {
+    updates.sourcing_window_day_close =
+      sourcing_window_day_close === null || sourcing_window_day_close === '' ? null : Number(sourcing_window_day_close)
+  }
+  if (Array.isArray(allowed_sections)) {
+    updates.allowed_sections = allowed_sections
+  }
 
   const supabase = await createServiceRoleClient()
   const { data, error } = await supabase

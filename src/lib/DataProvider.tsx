@@ -42,6 +42,7 @@ interface DataContextType {
   campaignsLoading: boolean
   userRole: UserRole | null
   userEmail: string | null
+  allowedSections: string[] | null
   refreshLists: () => Promise<void>
   refreshCampaigns: () => Promise<void>
   instances: ClientInstance[]
@@ -56,6 +57,7 @@ const DataContext = createContext<DataContextType>({
   campaignsLoading: true,
   userRole: null,
   userEmail: null,
+  allowedSections: null,
   refreshLists: async () => {},
   refreshCampaigns: async () => {},
   instances: [],
@@ -102,6 +104,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [campaignsLoading, setCampaignsLoading] = useState(true)
   const [userRole, setUserRole] = useState<UserRole | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [allowedSections, setAllowedSections] = useState<string[] | null>(null)
   const [instances, setInstances] = useState<ClientInstance[]>([])
   const [selectedInstanceId, setSelectedInstanceIdState] = useState<string | null>(null)
 
@@ -159,6 +162,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       .then((data) => {
         if (data.role) setUserRole(data.role)
         if (data.email) setUserEmail(data.email)
+        if (data.allowedSections) setAllowedSections(data.allowedSections)
       })
       .catch(() => {})
   }, [])
@@ -196,6 +200,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         campaignsLoading,
         userRole,
         userEmail,
+        allowedSections,
         refreshLists,
         refreshCampaigns,
         instances,

@@ -12,6 +12,10 @@ interface Client {
   listmonk_url?: string
   listmonk_username?: string
   listmonk_password?: string
+  apollo_api_key?: string | null
+  sourcing_window_day_open?: number | null
+  sourcing_window_day_close?: number | null
+  allowed_sections?: string[]
   created_at: string
   assigned_lists?: number
   user_count?: number
@@ -85,7 +89,26 @@ function ClientsTab() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const [form, setForm] = useState({ name: '', slug: '', owner_email: '', listmonk_url: '', listmonk_username: '', listmonk_password: '' })
+  const CLIENT_SECTIONS = [
+    { key: 'dashboard', label: 'Dashboard' },
+    { key: 'lists', label: 'Lists' },
+    { key: 'campaigns', label: 'Campaigns' },
+    { key: 'sourcing', label: 'Sourcing' },
+    { key: 'stats', label: 'Stats' },
+  ]
+
+  const [form, setForm] = useState({
+    name: '',
+    slug: '',
+    owner_email: '',
+    listmonk_url: '',
+    listmonk_username: '',
+    listmonk_password: '',
+    apollo_api_key: '',
+    sourcing_window_day_open: '' as string,
+    sourcing_window_day_close: '' as string,
+    allowed_sections: ['dashboard', 'lists', 'campaigns', 'stats'] as string[],
+  })
 
   const fetchClients = useCallback(async () => {
     setLoading(true)
@@ -125,6 +148,12 @@ function ClientsTab() {
       listmonk_url: client.listmonk_url || '',
       listmonk_username: client.listmonk_username || '',
       listmonk_password: '',
+      apollo_api_key: '',
+      sourcing_window_day_open:
+        client.sourcing_window_day_open == null ? '' : String(client.sourcing_window_day_open),
+      sourcing_window_day_close:
+        client.sourcing_window_day_close == null ? '' : String(client.sourcing_window_day_close),
+      allowed_sections: client.allowed_sections ?? ['dashboard', 'lists', 'campaigns', 'stats'],
     })
     setShowForm(true)
   }
@@ -132,7 +161,18 @@ function ClientsTab() {
   function cancelForm() {
     setShowForm(false)
     setEditingId(null)
-    setForm({ name: '', slug: '', owner_email: '', listmonk_url: '', listmonk_username: '', listmonk_password: '' })
+    setForm({
+      name: '',
+      slug: '',
+      owner_email: '',
+      listmonk_url: '',
+      listmonk_username: '',
+      listmonk_password: '',
+      apollo_api_key: '',
+      sourcing_window_day_open: '',
+      sourcing_window_day_close: '',
+      allowed_sections: ['dashboard', 'lists', 'campaigns', 'stats'],
+    })
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -146,6 +186,8 @@ function ClientsTab() {
         const payload: Record<string, unknown> = { id: editingId, ...form }
         // Don't send empty password (keep existing)
         if (!payload.listmonk_password) delete payload.listmonk_password
+        // Don't overwrite an existing sourcing API key with a blank one
+        if (!payload.apollo_api_key) delete payload.apollo_api_key
         const res = await fetch('/api/settings/clients', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -393,6 +435,96 @@ function ClientsTab() {
               <p className="text-xs text-text-light mt-2">
                 Leave blank to use the default Listmonk instance. Fill in to connect this client to their own Listmonk.
               </p>
+            </div>
+
+            <div className="border-t border-border-custom pt-4 mt-2">
+              <p className="text-xs text-text-light uppercase tracking-wider font-medium mb-3">Sourcing Database</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-text-mid mb-1">
+                    Sourcing API Key
+                  </label>
+                  <input
+                    type="password"
+                    value={form.apollo_api_key}
+                    onChange={(e) => setForm({ ...form, apollo_api_key: e.target.value })}
+                    className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                    placeholder="••••••••"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-mid mb-1">
+                    Sourcing Window Opens
+                  </label>
+                  <select
+                    value={form.sourcing_window_day_open}
+                    onChange={(e) => setForm({ ...form, sourcing_window_day_open: e.target.value })}
+                    className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                  >
+                    <option value="">Always open</option>
+                    <option value="0">Sunday</option>
+                    <option value="1">Monday</option>
+                    <option value="2">Tuesday</option>
+                    <option value="3">Wednesday</option>
+                    <option value="4">Thursday</option>
+                    <option value="5">Friday</option>
+                    <option value="6">Saturday</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-mid mb-1">
+                    Sourcing Window Closes
+                  </label>
+                  <select
+                    value={form.sourcing_window_day_close}
+                    onChange={(e) => setForm({ ...form, sourcing_window_day_close: e.target.value })}
+                    className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                  >
+                    <option value="">Always open</option>
+                    <option value="0">Sunday</option>
+                    <option value="1">Monday</option>
+                    <option value="2">Tuesday</option>
+                    <option value="3">Wednesday</option>
+                    <option value="4">Thursday</option>
+                    <option value="5">Friday</option>
+                    <option value="6">Saturday</option>
+                  </select>
+                </div>
+              </div>
+              <p className="text-xs text-text-light mt-2">
+                Sourcing API key is stored encrypted and only used server-side. Leave blank when editing to keep the existing key. Set both window days to Always open to let this client submit any time.
+              </p>
+            </div>
+
+            <div className="border-t border-border-custom pt-4 mt-2">
+              <p className="text-xs text-text-light uppercase tracking-wider font-medium mb-3">Visible Sections</p>
+              <p className="text-xs text-text-light mb-3">
+                Choose which sections this client can see in their navigation. Unchecked sections will be hidden.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {CLIENT_SECTIONS.map((section) => {
+                  const active = form.allowed_sections.includes(section.key)
+                  return (
+                    <button
+                      key={section.key}
+                      type="button"
+                      onClick={() => {
+                        const next = active
+                          ? form.allowed_sections.filter((k) => k !== section.key)
+                          : [...form.allowed_sections, section.key]
+                        setForm({ ...form, allowed_sections: next })
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        active
+                          ? 'bg-accent text-white'
+                          : 'bg-offwhite text-text-mid hover:bg-border-custom'
+                      }`}
+                    >
+                      {section.label}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
             <div className="flex gap-3">
