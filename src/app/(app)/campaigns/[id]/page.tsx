@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useData } from '@/lib/DataProvider'
 
 interface CampaignDetail {
   id: number
@@ -37,6 +38,10 @@ export default function CampaignDetailPage() {
   const [sending, setSending] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [publishResult, setPublishResult] = useState<{ link: string } | null>(null)
+  const [showWpClientPicker, setShowWpClientPicker] = useState(false)
+  const [wpClients, setWpClients] = useState<{ id: string; name: string }[]>([])
+  const [wpClientsLoaded, setWpClientsLoaded] = useState(false)
+  const { userRole } = useData()
 
   // Queue navigation
   const queueIds = useMemo(() => {
@@ -124,18 +129,40 @@ export default function CampaignDetailPage() {
     }
   }
 
-  async function handlePublishToWordPress() {
-    if (!confirm('Publish this campaign as a WordPress post?')) return
+  function handlePublishClick() {
+    const instance = searchParams.get('instance')
+    if (instance || userRole !== 'admin') {
+      // Client user or admin with instance selected — publish directly
+      publishToWordPress(instance || undefined)
+    } else {
+      // Admin without instance — show client picker
+      if (!wpClientsLoaded) {
+        fetch('/api/settings/clients')
+          .then((r) => r.json())
+          .then((json) => {
+            const list = (json.data || [])
+              .filter((c: { wordpress_url?: string | null }) => c.wordpress_url)
+              .map((c: { id: string; name: string }) => ({ id: c.id, name: c.name }))
+            setWpClients(list)
+            setWpClientsLoaded(true)
+          })
+          .catch(() => {})
+      }
+      setShowWpClientPicker(true)
+    }
+  }
+
+  async function publishToWordPress(instanceId?: string) {
     setPublishing(true)
     setPublishResult(null)
+    setShowWpClientPicker(false)
     try {
-      const instance = searchParams.get('instance')
       const res = await fetch('/api/campaigns/publish-wordpress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           campaignId: params.id,
-          instanceId: instance || undefined,
+          instanceId,
         }),
       })
       const json = await res.json()
@@ -200,7 +227,7 @@ export default function CampaignDetailPage() {
             </button>
           )}
           <button
-            onClick={handlePublishToWordPress}
+            onClick={handlePublishClick}
             disabled={publishing}
             className="px-4 py-2 border border-border-custom text-text-mid hover:bg-offwhite rounded-lg font-medium text-sm disabled:opacity-50 transition-colors"
           >
@@ -302,6 +329,45 @@ export default function CampaignDetailPage() {
           </div>
         </dl>
       </div>
+
+      {showWpClientPicker && (
+        <div className="fixed inset-0 bg-navy/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface rounded-xl border border-border-custom p-6 max-w-sm w-full">
+            <h3 className="font-display text-xl text-navy mb-2 uppercase">
+              Publish to WordPress
+            </h3>
+            <p className="text-sm text-text-mid mb-4">
+              Select which client&apos;s WordPress site to publish to.
+            </p>
+            {wpClients.length === 0 ? (
+              <p className="text-sm text-text-light mb-4">
+                No clients have WordPress configured. Add credentials in Settings → Clients.
+              </p>
+            ) : (
+              <div className="space-y-1.5 max-h-64 overflow-y-auto mb-4">
+                {wpClients.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => publishToWordPress(c.id)}
+                    className="w-full text-left px-4 py-2.5 rounded-lg text-sm text-navy hover:bg-accent-wash transition-colors"
+                  >
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowWpClientPicker(false)}
+                className="px-4 py-2 border border-border-custom text-text-mid hover:bg-offwhite rounded-lg text-sm font-medium transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
