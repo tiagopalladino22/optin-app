@@ -133,7 +133,7 @@ export default function CampaignDetailPage() {
     const instance = searchParams.get('instance')
     if (instance || userRole !== 'admin') {
       // Client user or admin with instance selected — publish directly
-      publishToWordPress(instance || undefined)
+      publishToWordPress(undefined)
     } else {
       // Admin without instance — show client picker
       if (!wpClientsLoaded) {
@@ -152,17 +152,19 @@ export default function CampaignDetailPage() {
     }
   }
 
-  async function publishToWordPress(instanceId?: string) {
+  async function publishToWordPress(wpClientId?: string) {
     setPublishing(true)
     setPublishResult(null)
     setShowWpClientPicker(false)
     try {
+      const instance = searchParams.get('instance')
       const res = await fetch('/api/campaigns/publish-wordpress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           campaignId: params.id,
-          instanceId,
+          instanceId: instance || undefined,
+          wpClientId: wpClientId || undefined,
         }),
       })
       const json = await res.json()

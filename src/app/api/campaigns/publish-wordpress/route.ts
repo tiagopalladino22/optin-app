@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { campaignId, instanceId } = body
+  const { campaignId, instanceId, wpClientId: bodyWpClientId } = body
 
   if (!campaignId) {
     return NextResponse.json({ error: 'campaignId is required' }, { status: 400 })
@@ -22,37 +22,45 @@ export async function POST(request: NextRequest) {
   const supabase = await createServiceRoleClient()
 
   // Determine which client to use for WordPress credentials.
-  // If an instanceId is provided (admin viewing another client's instance),
-  // use that client. Otherwise use the session's client.
-  const wpClientId = instanceId || session.clientId
+  // `wpClientId` is the explicit target (admin picked from the client picker).
+  // `instanceId` is the Listmonk source instance (from the URL ?instance= param).
+  // For client users, both default to session.clientId.
+  const wpClientId = bodyWpClientId || instanceId || session.clientId
   if (!wpClientId) {
     return NextResponse.json({ error: 'No client associated' }, { status: 403 })
   }
 
-  const { data: client } = await supabase
+  const { data: wpClient } = await supabase
     .from('clients')
-    .select(
-      'wordpress_url, wordpress_username, wordpress_password, listmonk_url, listmonk_username, listmonk_password'
-    )
+    .select('wordpress_url, wordpress_username, wordpress_password')
     .eq('id', wpClientId)
     .single()
 
-  if (!client?.wordpress_url || !client?.wordpress_username || !client?.wordpress_password) {
+  if (!wpClient?.wordpress_url || !wpClient?.wordpress_username || !wpClient?.wordpress_password) {
     return NextResponse.json(
       { error: 'WordPress credentials not configured for this client' },
       { status: 400 }
     )
   }
 
-  // Fetch the campaign from Listmonk
-  const fetchFn =
-    instanceId && client.listmonk_url && client.listmonk_username && client.listmonk_password
-      ? createClientListmonkFetch({
-          url: client.listmonk_url,
-          username: client.listmonk_username,
-          password: client.listmonk_password,
-        })
-      : listmonkFetch
+  // Fetch the campaign from Listmonk.
+  // `instanceId` determines which Listmonk instance the campaign lives on.
+  // If no instanceId, use the default Listmonk instance.
+  let fetchFn = listmonkFetch
+  if (instanceId) {
+    const { data: lmClient } = await supabase
+      .from('clients')
+      .select('listmonk_url, listmonk_username, listmonk_password')
+      .eq('id', instanceId)
+      .single()
+    if (lmClient?.listmonk_url && lmClient?.listmonk_username && lmClient?.listmonk_password) {
+      fetchFn = createClientListmonkFetch({
+        url: lmClient.listmonk_url,
+        username: lmClient.listmonk_username,
+        password: lmClient.listmonk_password,
+      })
+    }
+  }
 
   let campaignSubject: string
   let campaignBody: string
@@ -78,9 +86,9 @@ export async function POST(request: NextRequest) {
   }
 
   // Publish to WordPress
-  const wpUrl = client.wordpress_url.replace(/\/+$/, '')
+  const wpUrl = wpClient.wordpress_url.replace(/\/+$/, '')
   const wpAuth = Buffer.from(
-    `${client.wordpress_username}:${client.wordpress_password}`
+    `${wpClient.wordpress_username}:${wpClient.wordpress_password}`
   ).toString('base64')
 
   try {
