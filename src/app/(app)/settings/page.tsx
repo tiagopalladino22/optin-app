@@ -12,6 +12,9 @@ interface Client {
   listmonk_url?: string
   listmonk_username?: string
   listmonk_password?: string
+  wordpress_url?: string | null
+  wordpress_username?: string | null
+  wordpress_password?: string | null
   apollo_api_key?: string | null
   sourcing_window_day_open?: number | null
   sourcing_window_day_close?: number | null
@@ -104,6 +107,9 @@ function ClientsTab() {
     listmonk_url: '',
     listmonk_username: '',
     listmonk_password: '',
+    wordpress_url: '',
+    wordpress_username: '',
+    wordpress_password: '',
     apollo_api_key: '',
     sourcing_window_day_open: '' as string,
     sourcing_window_day_close: '' as string,
@@ -148,6 +154,9 @@ function ClientsTab() {
       listmonk_url: client.listmonk_url || '',
       listmonk_username: client.listmonk_username || '',
       listmonk_password: '',
+      wordpress_url: client.wordpress_url || '',
+      wordpress_username: client.wordpress_username || '',
+      wordpress_password: '',
       apollo_api_key: '',
       sourcing_window_day_open:
         client.sourcing_window_day_open == null ? '' : String(client.sourcing_window_day_open),
@@ -168,6 +177,9 @@ function ClientsTab() {
       listmonk_url: '',
       listmonk_username: '',
       listmonk_password: '',
+      wordpress_url: '',
+      wordpress_username: '',
+      wordpress_password: '',
       apollo_api_key: '',
       sourcing_window_day_open: '',
       sourcing_window_day_close: '',
@@ -186,7 +198,8 @@ function ClientsTab() {
         const payload: Record<string, unknown> = { id: editingId, ...form }
         // Don't send empty password (keep existing)
         if (!payload.listmonk_password) delete payload.listmonk_password
-        // Don't overwrite an existing sourcing API key with a blank one
+        // Don't overwrite existing secrets with blank values
+        if (!payload.wordpress_password) delete payload.wordpress_password
         if (!payload.apollo_api_key) delete payload.apollo_api_key
         const res = await fetch('/api/settings/clients', {
           method: 'PUT',
@@ -434,6 +447,51 @@ function ClientsTab() {
               </div>
               <p className="text-xs text-text-light mt-2">
                 Leave blank to use the default Listmonk instance. Fill in to connect this client to their own Listmonk.
+              </p>
+            </div>
+
+            <div className="border-t border-border-custom pt-4 mt-2">
+              <p className="text-xs text-text-light uppercase tracking-wider font-medium mb-3">WordPress</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-text-mid mb-1">
+                    WordPress URL
+                  </label>
+                  <input
+                    type="text"
+                    value={form.wordpress_url}
+                    onChange={(e) => setForm({ ...form, wordpress_url: e.target.value })}
+                    className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                    placeholder="https://blog.example.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-mid mb-1">
+                    WordPress Username
+                  </label>
+                  <input
+                    type="text"
+                    value={form.wordpress_username}
+                    onChange={(e) => setForm({ ...form, wordpress_username: e.target.value })}
+                    className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                    placeholder="admin"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-mid mb-1">
+                    WordPress App Password
+                  </label>
+                  <input
+                    type="password"
+                    value={form.wordpress_password}
+                    onChange={(e) => setForm({ ...form, wordpress_password: e.target.value })}
+                    className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-text-light mt-2">
+                Used to publish campaigns as WordPress posts. Generate an Application Password in WordPress under Users → Your Profile → Application Passwords.
               </p>
             </div>
 

@@ -69,6 +69,9 @@ export async function POST(request: NextRequest) {
     listmonk_url,
     listmonk_username,
     listmonk_password,
+    wordpress_url,
+    wordpress_username,
+    wordpress_password,
     apollo_api_key,
     sourcing_window_day_open,
     sourcing_window_day_close,
@@ -92,6 +95,9 @@ export async function POST(request: NextRequest) {
       listmonk_url: listmonk_url || process.env.LISTMONK_URL || null,
       listmonk_username: listmonk_username || null,
       listmonk_password: listmonk_password || null,
+      wordpress_url: wordpress_url || null,
+      wordpress_username: wordpress_username || null,
+      wordpress_password: wordpress_password || null,
       apollo_api_key: apollo_api_key || null,
       sourcing_window_day_open:
         sourcing_window_day_open === undefined || sourcing_window_day_open === null || sourcing_window_day_open === ''
@@ -131,6 +137,9 @@ export async function PUT(request: NextRequest) {
     listmonk_url,
     listmonk_username,
     listmonk_password,
+    wordpress_url,
+    wordpress_username,
+    wordpress_password,
     apollo_api_key,
     sourcing_window_day_open,
     sourcing_window_day_close,
@@ -148,6 +157,9 @@ export async function PUT(request: NextRequest) {
   if (listmonk_url !== undefined) updates.listmonk_url = listmonk_url || null
   if (listmonk_username !== undefined) updates.listmonk_username = listmonk_username || null
   if (listmonk_password !== undefined) updates.listmonk_password = listmonk_password || null
+  if (wordpress_url !== undefined) updates.wordpress_url = wordpress_url || null
+  if (wordpress_username !== undefined) updates.wordpress_username = wordpress_username || null
+  if (wordpress_password !== undefined) updates.wordpress_password = wordpress_password || null
   if (apollo_api_key !== undefined) updates.apollo_api_key = apollo_api_key || null
   if (sourcing_window_day_open !== undefined) {
     updates.sourcing_window_day_open =

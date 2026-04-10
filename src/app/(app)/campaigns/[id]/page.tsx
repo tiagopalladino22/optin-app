@@ -35,6 +35,8 @@ export default function CampaignDetailPage() {
   const [uniqueStats, setUniqueStats] = useState<UniqueStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [publishing, setPublishing] = useState(false)
+  const [publishResult, setPublishResult] = useState<{ link: string } | null>(null)
 
   // Queue navigation
   const queueIds = useMemo(() => {
@@ -122,6 +124,34 @@ export default function CampaignDetailPage() {
     }
   }
 
+  async function handlePublishToWordPress() {
+    if (!confirm('Publish this campaign as a WordPress post?')) return
+    setPublishing(true)
+    setPublishResult(null)
+    try {
+      const instance = searchParams.get('instance')
+      const res = await fetch('/api/campaigns/publish-wordpress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campaignId: params.id,
+          instanceId: instance || undefined,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        alert(json.error || 'Failed to publish')
+      } else {
+        setPublishResult({ link: json.post?.link })
+      }
+    } catch (err) {
+      console.error('Failed to publish to WordPress:', err)
+      alert('Failed to publish to WordPress')
+    } finally {
+      setPublishing(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -169,8 +199,31 @@ export default function CampaignDetailPage() {
               {sending ? 'Starting...' : 'Send Campaign'}
             </button>
           )}
+          <button
+            onClick={handlePublishToWordPress}
+            disabled={publishing}
+            className="px-4 py-2 border border-border-custom text-text-mid hover:bg-offwhite rounded-lg font-medium text-sm disabled:opacity-50 transition-colors"
+          >
+            {publishing ? 'Publishing...' : 'Publish to WordPress'}
+          </button>
         </div>
       </div>
+
+      {publishResult && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-700">
+          Published to WordPress.{' '}
+          {publishResult.link && (
+            <a
+              href={publishResult.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline font-medium"
+            >
+              View post
+            </a>
+          )}
+        </div>
+      )}
 
       {/* Queue navigation */}
       {queueIds.length > 1 && (
