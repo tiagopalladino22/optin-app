@@ -184,6 +184,22 @@ async function handleProxy(
 
   const doFetch = customFetch || listmonkFetch
 
+  // Preview endpoint returns raw HTML, not JSON — bypass caching and return directly
+  const isPreview = fullPath.match(/campaigns\/\d+\/preview/)
+  if (isPreview && method === 'GET') {
+    try {
+      const lmResponse = await doFetch(fullPath, fetchOptions)
+      const html = await lmResponse.text()
+      return new NextResponse(html, {
+        status: lmResponse.status,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      })
+    } catch (err) {
+      console.error(`Listmonk preview failed for ${fullPath}:`, err)
+      return new NextResponse('Preview not available', { status: 504 })
+    }
+  }
+
   if (method === 'GET') {
     // Stale-while-revalidate: serve cached data instantly, refresh in background
     const cached = getCached(cacheKey)

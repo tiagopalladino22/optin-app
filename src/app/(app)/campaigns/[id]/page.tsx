@@ -4,6 +4,8 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useData } from '@/lib/DataProvider'
+import CampaignPreviewModal from '@/components/campaigns/CampaignPreviewModal'
+import SendTestModal from '@/components/campaigns/SendTestModal'
 
 interface CampaignDetail {
   id: number
@@ -41,6 +43,8 @@ export default function CampaignDetailPage() {
   const [showWpClientPicker, setShowWpClientPicker] = useState(false)
   const [wpClients, setWpClients] = useState<{ id: string; name: string }[]>([])
   const [wpClientsLoaded, setWpClientsLoaded] = useState(false)
+  const [showPreviewModal, setShowPreviewModal] = useState(false)
+  const [showTestModal, setShowTestModal] = useState(false)
   const { userRole } = useData()
 
   // Queue navigation
@@ -49,6 +53,8 @@ export default function CampaignDetailPage() {
     return q ? q.split(',').map(Number).filter(Boolean) : []
   }, [searchParams])
 
+  const instanceParam = searchParams.get('instance')
+  const qs = instanceParam ? `?instance=${instanceParam}` : ''
   const currentId = Number(params.id)
   const currentIndex = queueIds.indexOf(currentId)
   const hasPrev = currentIndex > 0
@@ -162,7 +168,7 @@ export default function CampaignDetailPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          campaignId: params.id,
+          currentId: params.id,
           instanceId: instance || undefined,
           wpClientId: wpClientId || undefined,
         }),
@@ -219,6 +225,30 @@ export default function CampaignDetailPage() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {campaign.status === 'draft' && (
+            <Link
+              href={`/campaigns/${currentId}/edit${qs}`}
+              className="px-4 py-2 border border-border-custom text-text-mid hover:bg-offwhite rounded-lg font-medium text-sm transition-colors"
+            >
+              Edit
+            </Link>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowPreviewModal(true)}
+            className="px-4 py-2 border border-border-custom text-text-mid hover:bg-offwhite rounded-lg font-medium text-sm transition-colors"
+          >
+            Preview
+          </button>
+          {campaign.status === 'draft' && (
+            <button
+              type="button"
+              onClick={() => setShowTestModal(true)}
+              className="px-4 py-2 border border-border-custom text-text-mid hover:bg-offwhite rounded-lg font-medium text-sm transition-colors"
+            >
+              Send Test
+            </button>
+          )}
           {campaign.status === 'draft' && (
             <button
               onClick={handleSend}
@@ -331,6 +361,22 @@ export default function CampaignDetailPage() {
           </div>
         </dl>
       </div>
+
+      {showPreviewModal && (
+        <CampaignPreviewModal
+          campaignId={currentId}
+          instanceId={searchParams.get('instance') || undefined}
+          onClose={() => setShowPreviewModal(false)}
+        />
+      )}
+
+      {showTestModal && (
+        <SendTestModal
+          campaignId={currentId}
+          instanceId={searchParams.get('instance') || undefined}
+          onClose={() => setShowTestModal(false)}
+        />
+      )}
 
       {showWpClientPicker && (
         <div className="fixed inset-0 bg-navy/40 flex items-center justify-center z-50 p-4">
