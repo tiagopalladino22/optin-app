@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: "OPTIN",
   description: "Newsletter Management Platform",
   icons: {
-    icon: "/favicon.png",
+    icon: "/favicon.png?v=2",
   },
 };
 
