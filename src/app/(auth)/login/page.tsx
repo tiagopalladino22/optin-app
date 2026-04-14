@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
+
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
@@ -37,7 +37,9 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#000' }}>
       <div className="w-full max-w-sm px-6">
         <div className="text-center mb-10">
-          <Image src="/logo.png" alt="OPTIN" width={140} height={46} className="mx-auto object-contain" />
+          
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="https://assets.cdn.filesafe.space/uV5Ao6zz1HK4AbvPQ1Of/media/6997cfc908245e32ebddf688.png" alt="OPTIN" width={140} height={46} className="mx-auto object-contain" />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
