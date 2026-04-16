@@ -3,6 +3,8 @@
 import { Suspense, useEffect, useState, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useData } from '@/lib/DataProvider'
+import PushKPIsModal from '@/components/campaigns/PushKPIsModal'
 
 interface CampaignData {
   id: number
@@ -31,8 +33,10 @@ export default function CampaignSummaryPage() {
 
 function SummaryContent() {
   const searchParams = useSearchParams()
+  const { userRole } = useData()
   const [campaigns, setCampaigns] = useState<CampaignData[]>([])
   const [loading, setLoading] = useState(true)
+  const [showPushModal, setShowPushModal] = useState(false)
 
   const ids = useMemo(() => {
     const param = searchParams.get('ids')
@@ -163,6 +167,15 @@ function SummaryContent() {
             {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''} selected
           </p>
         </div>
+        <div className="flex items-center gap-2">
+        {userRole === 'admin' && (
+          <button
+            onClick={() => setShowPushModal(true)}
+            className="px-4 py-2 text-sm bg-accent text-white hover:bg-accent-bright rounded-lg font-medium transition-colors"
+          >
+            Push KPIs
+          </button>
+        )}
         <button
           onClick={() => {
             const headers = ['Campaign', 'Subject', 'Sent', 'Unique Opens', 'Open Rate', 'Total Views', 'Unique Clicks', 'CTR', 'Total Clicks', 'Unsubs', 'Unsub Rate', 'Bounces', 'Bounce Rate', 'Lists', 'Date']
@@ -206,6 +219,7 @@ function SummaryContent() {
         >
           Export CSV
         </button>
+        </div>
       </div>
 
       {/* Totals */}
@@ -293,6 +307,15 @@ function SummaryContent() {
           </table>
         </div>
       </div>
+
+      {showPushModal && (
+        <PushKPIsModal
+          campaignIds={ids}
+          instanceId={instanceId || undefined}
+          defaultIssueName={campaigns[0]?.subject || ''}
+          onClose={() => setShowPushModal(false)}
+        />
+      )}
     </div>
   )
 }
