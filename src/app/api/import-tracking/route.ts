@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await req.json()
-    const { list_id, list_name, publication_code, import_date, imported_count } = body
+    const { list_id, list_name, publication_code, import_date, imported_count, group_id } = body
 
     if (!list_id || !list_name || imported_count === undefined || imported_count === null) {
       return NextResponse.json({ error: 'list_id, list_name, and imported_count are required' }, { status: 400 })
@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
         publication_code: publication_code || null,
         import_date: import_date || new Date().toISOString().split('T')[0],
         imported_count,
+        group_id: group_id || null,
       })
       .select()
       .single()
@@ -62,6 +63,45 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(data)
   } catch (err) {
     console.error('Import tracking POST error:', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = await getSession()
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { searchParams } = new URL(req.url)
+    const id = searchParams.get('id')
+    if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 })
+
+    const body = await req.json()
+    const updates: Record<string, string | null> = {}
+    if ('publication_code' in body) {
+      const code = typeof body.publication_code === 'string' ? body.publication_code.trim().toUpperCase() : null
+      updates.publication_code = code || null
+    }
+    if ('group_id' in body) {
+      updates.group_id = typeof body.group_id === 'string' && body.group_id ? body.group_id : null
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
+    }
+
+    const supabase = await createServiceRoleClient()
+
+    let query = supabase.from('import_tracking').update(updates).eq('id', id)
+    if (session.clientId) {
+      query = query.eq('client_id', session.clientId)
+    }
+
+    const { data, error } = await query.select().single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    return NextResponse.json(data)
+  } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

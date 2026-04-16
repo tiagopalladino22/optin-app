@@ -7,6 +7,7 @@ interface TrackingRecord {
   list_id: number
   list_name: string
   publication_code: string | null
+  group_id: string | null
   import_date: string
   imported_count: number
   week1_opens: number | null
@@ -16,6 +17,12 @@ interface TrackingRecord {
   remaining_subs: number | null
   status: string
   created_at: string
+}
+
+interface ImportGroup {
+  id: string
+  name: string
+  sort_order: number
 }
 
 interface ListmonkList {
@@ -46,7 +53,11 @@ export default function ImportTrackingPage() {
 
   // Form state
   const [selectedLists, setSelectedLists] = useState<Set<number>>(new Set())
+  const [formGroupId, setFormGroupId] = useState<string>('')
+  const [formNewGroupName, setFormNewGroupName] = useState('')
   const [saving, setSaving] = useState(false)
+
+  const [groups, setGroups] = useState<ImportGroup[]>([])
 
   const fetchRecords = useCallback(async () => {
     try {
@@ -58,6 +69,17 @@ export default function ImportTrackingPage() {
       setError('Failed to load tracking records')
     } finally {
       setLoading(false)
+    }
+  }, [])
+
+  const fetchGroups = useCallback(async () => {
+    try {
+      const res = await fetch('/api/import-tracking/groups')
+      if (!res.ok) return
+      const data = await res.json()
+      setGroups(data)
+    } catch {
+      // optional
     }
   }, [])
 
@@ -107,7 +129,8 @@ export default function ImportTrackingPage() {
 
   useEffect(() => {
     fetchRecords()
-  }, [fetchRecords])
+    fetchGroups()
+  }, [fetchRecords, fetchGroups])
 
   function toggleListSelection(listId: number) {
     setSelectedLists((prev) => {
@@ -134,7 +157,9 @@ export default function ImportTrackingPage() {
   }
 
   function detectPubCode(name: string): string | null {
-    const match = name.match(/^([A-Z]{3})\s*-/)
+    // Match 2-8 uppercase letters at start followed by optional whitespace + hyphen
+    // Handles "TWS - ..." (3 letters) AND "TWSW - ..." (4+ letters)
+    const match = name.match(/^([A-Z]{2,8})\s*-/)
     return match ? match[1] : null
   }
 
@@ -158,6 +183,35 @@ export default function ImportTrackingPage() {
 
     setSaving(true)
     setError('')
+
+    // Resolve the target group: either existing, new, or none
+    let targetGroupId: string | null = null
+    if (formGroupId === '__new__') {
+      const name = formNewGroupName.trim()
+      if (!name) {
+        setError('Enter a name for the new group')
+        setSaving(false)
+        return
+      }
+      try {
+        const res = await fetch('/api/import-tracking/groups', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name }),
+        })
+        if (!res.ok) throw new Error()
+        const newGroup = await res.json()
+        targetGroupId = newGroup.id
+        await fetchGroups()
+      } catch {
+        setError('Failed to create group')
+        setSaving(false)
+        return
+      }
+    } else if (formGroupId) {
+      targetGroupId = formGroupId
+    }
+
     let added = 0
     const errors: string[] = []
 
@@ -175,6 +229,7 @@ export default function ImportTrackingPage() {
             publication_code: detectPubCode(list.name),
             import_date: detectImportDate(list.name),
             imported_count: list.subscriber_count || 0,
+            group_id: targetGroupId,
           }),
         })
 
@@ -200,6 +255,8 @@ export default function ImportTrackingPage() {
     setShowForm(false)
     setSelectedLists(new Set())
     setListSearch('')
+    setFormGroupId('')
+    setFormNewGroupName('')
     fetchRecords()
     setSaving(false)
   }
@@ -239,6 +296,129 @@ export default function ImportTrackingPage() {
   // Pub code filter for the tracking table
   const [activePubFilter, setActivePubFilter] = useState<string | null>(null)
   const [tableSearch, setTableSearch] = useState('')
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+  const [editingPubId, setEditingPubId] = useState<string | null>(null)
+  const [editingPubValue, setEditingPubValue] = useState('')
+  const [selectedRecords, setSelectedRecords] = useState<Set<string>>(new Set())
+  const [showGroupMenu, setShowGroupMenu] = useState(false)
+
+  function toggleRecordSelection(id: string) {
+    setSelectedRecords((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function clearSelection() {
+    setSelectedRecords(new Set())
+    setShowGroupMenu(false)
+  }
+
+  async function bulkMoveToGroup(groupId: string | null) {
+    const ids = Array.from(selectedRecords)
+    if (ids.length === 0) return
+    try {
+      await Promise.all(
+        ids.map((id) =>
+          fetch(`/api/import-tracking?id=${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ group_id: groupId }),
+          })
+        )
+      )
+      clearSelection()
+      fetchRecords()
+    } catch {
+      setError('Failed to move lists')
+    }
+  }
+
+  async function createGroupWithSelection() {
+    const name = newGroupName.trim()
+    if (!name) return
+    try {
+      const res = await fetch('/api/import-tracking/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      })
+      if (!res.ok) throw new Error()
+      const newGroup = await res.json()
+      await fetchGroups()
+      // Move selected records to the new group
+      if (selectedRecords.size > 0 && newGroup?.id) {
+        await bulkMoveToGroup(newGroup.id)
+      }
+      setNewGroupName('')
+      setShowNewGroup(false)
+    } catch {
+      setError('Failed to create group')
+    }
+  }
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
+  const [editingGroupValue, setEditingGroupValue] = useState('')
+  const [newGroupName, setNewGroupName] = useState('')
+  const [showNewGroup, setShowNewGroup] = useState(false)
+
+  function toggleGroup(id: string) {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  async function renameGroup(id: string) {
+    const name = editingGroupValue.trim()
+    if (!name) return
+    try {
+      const res = await fetch(`/api/import-tracking/groups?id=${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      })
+      if (!res.ok) throw new Error()
+      setEditingGroupId(null)
+      setEditingGroupValue('')
+      fetchGroups()
+    } catch {
+      setError('Failed to rename group')
+    }
+  }
+
+  async function deleteGroup(id: string) {
+    if (!confirm('Delete this group? Lists in it will become ungrouped.')) return
+    try {
+      const res = await fetch(`/api/import-tracking/groups?id=${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      fetchGroups()
+      fetchRecords()
+    } catch {
+      setError('Failed to delete group')
+    }
+  }
+
+
+  async function savePubCode(id: string) {
+    const newCode = editingPubValue.trim().toUpperCase() || null
+    try {
+      const res = await fetch(`/api/import-tracking?id=${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publication_code: newCode }),
+      })
+      if (!res.ok) throw new Error('Failed')
+      setEditingPubId(null)
+      setEditingPubValue('')
+      fetchRecords()
+    } catch {
+      setError('Failed to update publication code')
+    }
+  }
 
   const pubCodes = Array.from(
     new Set(records.map((r) => r.publication_code).filter(Boolean))
@@ -319,6 +499,34 @@ export default function ImportTrackingPage() {
           )}
 
           <div>
+            <label className="block text-sm font-medium text-text-mid mb-1">Group (optional)</label>
+            <div className="flex gap-2">
+              <select
+                value={formGroupId}
+                onChange={(e) => setFormGroupId(e.target.value)}
+                className="flex-1 border border-border-custom rounded-lg px-3 py-2 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+              >
+                <option value="">Ungrouped</option>
+                {groups.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+                <option value="__new__">+ Create new group...</option>
+              </select>
+              {formGroupId === '__new__' && (
+                <input
+                  type="text"
+                  value={formNewGroupName}
+                  onChange={(e) => setFormNewGroupName(e.target.value)}
+                  placeholder="New group name"
+                  className="flex-1 border border-border-custom rounded-lg px-3 py-2 text-sm text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                />
+              )}
+            </div>
+          </div>
+
+          <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-text-mid">Select Lists</label>
               <div className="flex gap-3 text-xs">
@@ -396,7 +604,7 @@ export default function ImportTrackingPage() {
               onClick={() => setActivePubFilter(null)}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                 activePubFilter === null
-                  ? 'bg-navy text-white'
+                  ? 'bg-accent text-white'
                   : 'bg-offwhite text-text-mid hover:bg-border-custom'
               }`}
             >
@@ -429,11 +637,93 @@ export default function ImportTrackingPage() {
         </div>
       )}
 
+      {/* Bulk action bar (appears when rows are selected) */}
+      {selectedRecords.size > 0 && (
+        <div className="flex items-center gap-3 bg-accent-wash border border-accent/30 rounded-xl px-4 py-3">
+          <span className="text-sm text-accent font-medium">
+            {selectedRecords.size} selected
+          </span>
+          <div className="relative">
+            <button
+              onClick={() => setShowGroupMenu(!showGroupMenu)}
+              className="px-3 py-1.5 bg-accent text-white hover:bg-accent-bright rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+            >
+              Add to group
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            {showGroupMenu && (
+              <div className="absolute top-full mt-1 left-0 w-56 bg-surface rounded-lg border border-border-custom shadow-lg z-10 py-1">
+                {groups.length > 0 ? (
+                  groups.map((g) => (
+                    <button
+                      key={g.id}
+                      onClick={() => bulkMoveToGroup(g.id)}
+                      className="w-full text-left px-3 py-2 text-sm text-navy hover:bg-offwhite transition-colors"
+                    >
+                      {g.name}
+                    </button>
+                  ))
+                ) : (
+                  <p className="px-3 py-2 text-xs text-text-light italic">No groups yet</p>
+                )}
+                <div className="border-t border-border-custom my-1" />
+                <button
+                  onClick={() => {
+                    setShowNewGroup(true)
+                    setShowGroupMenu(false)
+                  }}
+                  className="w-full text-left px-3 py-2 text-sm text-accent hover:bg-offwhite transition-colors"
+                >
+                  + Create new group
+                </button>
+                <button
+                  onClick={() => bulkMoveToGroup(null)}
+                  className="w-full text-left px-3 py-2 text-sm text-text-mid hover:bg-offwhite transition-colors"
+                >
+                  Remove from group
+                </button>
+              </div>
+            )}
+          </div>
+          {showNewGroup && (
+            <div className="flex items-center gap-1">
+              <input
+                type="text"
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') createGroupWithSelection()
+                  if (e.key === 'Escape') { setShowNewGroup(false); setNewGroupName('') }
+                }}
+                autoFocus
+                placeholder="Group name"
+                className="px-2 py-1 border border-border-custom rounded text-sm text-navy focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+              <button onClick={createGroupWithSelection} className="text-accent text-sm px-2" title="Create & assign">✓</button>
+              <button
+                onClick={() => { setShowNewGroup(false); setNewGroupName('') }}
+                className="text-text-light text-sm px-2"
+                title="Cancel"
+              >✕</button>
+            </div>
+          )}
+          <button
+            onClick={clearSelection}
+            className="ml-auto text-sm text-text-mid hover:text-navy transition-colors"
+          >
+            Clear selection
+          </button>
+        </div>
+      )}
+
       <div className="bg-surface rounded-xl border border-border-custom overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-offwhite text-text-light uppercase text-xs tracking-wider">
+                <th className="w-10 pl-4 pr-2 py-3"></th>
                 <th className="text-left px-4 py-3 font-medium">List Name</th>
                 <th className="text-left px-4 py-3 font-medium">Pub</th>
                 <th className="text-right px-4 py-3 font-medium">Imported</th>
@@ -449,90 +739,320 @@ export default function ImportTrackingPage() {
             <tbody>
               {filteredRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-4 py-8 text-center text-text-light">
+                  <td colSpan={11} className="px-4 py-8 text-center text-text-light">
                     {records.length === 0
                       ? 'No tracked imports yet. Click "Add Tracking" to start.'
                       : 'No matching records.'}
                   </td>
                 </tr>
               ) : (
-                filteredRecords.map((r) => (
-                  <tr key={r.id} className="border-b border-border-custom last:border-0 hover:bg-offwhite/50 transition-colors">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-text-primary">{r.list_name}</p>
-                      <p className="text-xs text-text-light">{new Date(r.import_date).toLocaleDateString()}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      {r.publication_code ? (
-                        <span className="inline-block px-2 py-0.5 bg-accent-wash text-accent text-xs font-mono rounded">
-                          {r.publication_code}
-                        </span>
-                      ) : (
-                        <span className="text-text-light">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right font-display text-lg text-navy tabular-nums">
-                      {r.imported_count.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      {r.week1_opens !== null ? (
-                        <span className="text-accent font-medium">{r.week1_opens.toLocaleString()}</span>
-                      ) : (
-                        <span className="text-text-light">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      {r.week2_opens !== null ? (
-                        <span className="text-accent font-medium">{r.week2_opens.toLocaleString()}</span>
-                      ) : (
-                        <span className="text-text-light">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      {r.week3_opens !== null ? (
-                        <span className="text-accent font-medium">{r.week3_opens.toLocaleString()}</span>
-                      ) : (
-                        <span className="text-text-light">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      {r.week4_opens !== null ? (
-                        <span className="text-accent font-medium">{r.week4_opens.toLocaleString()}</span>
-                      ) : (
-                        <span className="text-text-light">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      {r.remaining_subs !== null ? (
-                        <span className="font-display text-lg text-navy">{r.remaining_subs.toLocaleString()}</span>
-                      ) : (
-                        <span className="text-text-light">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span
-                        className={`inline-block px-2.5 py-1 text-xs font-medium rounded-lg ${
-                          r.status === 'completed'
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : 'bg-accent-wash text-accent'
-                        }`}
+                (() => {
+                  // Build ordered list of groups to render:
+                  // 1. User-defined groups (even if empty) + their records
+                  // 2. Ungrouped records at the bottom
+                  const recordsByGroup = new Map<string | null, TrackingRecord[]>()
+                  for (const r of filteredRecords) {
+                    const key = r.group_id
+                    if (!recordsByGroup.has(key)) recordsByGroup.set(key, [])
+                    recordsByGroup.get(key)!.push(r)
+                  }
+
+                  type RenderedGroup = {
+                    id: string | null
+                    name: string
+                    records: TrackingRecord[]
+                  }
+                  const isFiltering = !!activePubFilter || !!tableSearch
+                  const renderOrder: RenderedGroup[] = []
+                  for (const g of groups) {
+                    const records = recordsByGroup.get(g.id) || []
+                    // When filtering, hide empty groups; otherwise show all (incl. empty)
+                    if (isFiltering && records.length === 0) continue
+                    renderOrder.push({
+                      id: g.id,
+                      name: g.name,
+                      records,
+                    })
+                  }
+                  const ungrouped = recordsByGroup.get(null) || []
+                  if (ungrouped.length > 0) {
+                    renderOrder.push({ id: null, name: 'Ungrouped', records: ungrouped })
+                  }
+
+                  return renderOrder.flatMap((g) => {
+                    const groupKey = g.id || 'ungrouped'
+                    const isExpanded = expandedGroups.has(groupKey)
+                    const totals = g.records.reduce(
+                      (acc, r) => ({
+                        imported: acc.imported + r.imported_count,
+                        w1: acc.w1 + (r.week1_opens || 0),
+                        w2: acc.w2 + (r.week2_opens || 0),
+                        w3: acc.w3 + (r.week3_opens || 0),
+                        w4: acc.w4 + (r.week4_opens || 0),
+                        remaining: acc.remaining + (r.remaining_subs || 0),
+                      }),
+                      { imported: 0, w1: 0, w2: 0, w3: 0, w4: 0, remaining: 0 }
+                    )
+
+                    const rows = [
+                      <tr
+                        key={`group-${groupKey}`}
+                        className="border-b border-border-custom bg-offwhite/50 hover:bg-offwhite font-medium"
                       >
-                        {r.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => handleDelete(r.id)}
-                        className="text-text-light hover:text-red-500 transition-colors"
-                        title="Delete"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        </svg>
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                        <td className="w-10 pl-4 pr-2 py-3">
+                          {(() => {
+                            const groupIds = g.records.map((r) => r.id)
+                            const allSelected = groupIds.length > 0 && groupIds.every((id) => selectedRecords.has(id))
+                            return (
+                              <input
+                                type="checkbox"
+                                checked={allSelected}
+                                onChange={() => {
+                                  setSelectedRecords((prev) => {
+                                    const next = new Set(prev)
+                                    if (allSelected) {
+                                      groupIds.forEach((id) => next.delete(id))
+                                    } else {
+                                      groupIds.forEach((id) => next.add(id))
+                                    }
+                                    return next
+                                  })
+                                }}
+                                className="rounded border-border-custom text-accent focus:ring-accent"
+                              />
+                            )
+                          })()}
+                        </td>
+                        <td className="px-4 py-3" colSpan={2}>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => toggleGroup(groupKey)}
+                              className="flex items-center"
+                              title={isExpanded ? 'Collapse' : 'Expand'}
+                            >
+                              <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className={`text-text-mid transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                              >
+                                <polyline points="9 18 15 12 9 6" />
+                              </svg>
+                            </button>
+                            {g.id && editingGroupId === g.id ? (
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="text"
+                                  value={editingGroupValue}
+                                  onChange={(e) => setEditingGroupValue(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') renameGroup(g.id!)
+                                    if (e.key === 'Escape') {
+                                      setEditingGroupId(null)
+                                      setEditingGroupValue('')
+                                    }
+                                  }}
+                                  autoFocus
+                                  className="px-2 py-0.5 border border-border-custom rounded text-sm text-navy focus:outline-none focus:ring-1 focus:ring-accent"
+                                />
+                                <button onClick={() => renameGroup(g.id!)} className="text-accent text-xs" title="Save">✓</button>
+                                <button
+                                  onClick={() => { setEditingGroupId(null); setEditingGroupValue('') }}
+                                  className="text-text-light text-xs"
+                                  title="Cancel"
+                                >✕</button>
+                              </div>
+                            ) : (
+                              <>
+                                <span className="text-navy">{g.name}</span>
+                                <span className="text-xs text-text-light font-normal">
+                                  ({g.records.length} list{g.records.length !== 1 ? 's' : ''})
+                                </span>
+                                {g.id && (
+                                  <>
+                                    <button
+                                      onClick={() => { setEditingGroupId(g.id); setEditingGroupValue(g.name) }}
+                                      className="ml-2 text-xs text-text-light hover:text-accent"
+                                      title="Rename"
+                                    >Rename</button>
+                                    <button
+                                      onClick={() => deleteGroup(g.id!)}
+                                      className="text-xs text-text-light hover:text-red-500"
+                                      title="Delete group"
+                                    >Delete</button>
+                                  </>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right font-display text-base text-navy tabular-nums">
+                          {totals.imported.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums text-accent font-medium">
+                          {totals.w1 > 0 ? totals.w1.toLocaleString() : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums text-accent font-medium">
+                          {totals.w2 > 0 ? totals.w2.toLocaleString() : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums text-accent font-medium">
+                          {totals.w3 > 0 ? totals.w3.toLocaleString() : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums text-accent font-medium">
+                          {totals.w4 > 0 ? totals.w4.toLocaleString() : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums text-navy font-display text-base">
+                          {totals.remaining > 0 ? totals.remaining.toLocaleString() : '-'}
+                        </td>
+                        <td className="px-4 py-3" colSpan={2}></td>
+                      </tr>,
+                    ]
+
+                    if (isExpanded) {
+                      for (const r of g.records) {
+                        rows.push(
+                          <tr
+                            key={r.id}
+                            className={`border-b border-border-custom last:border-0 hover:bg-offwhite/50 transition-colors ${
+                              selectedRecords.has(r.id) ? 'bg-accent-wash/40' : ''
+                            }`}
+                          >
+                            <td className="w-10 pl-4 pr-2 py-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedRecords.has(r.id)}
+                                onChange={() => toggleRecordSelection(r.id)}
+                                className="rounded border-border-custom text-accent focus:ring-accent"
+                              />
+                            </td>
+                            <td className="px-4 py-3 pl-10">
+                              <p className="font-medium text-text-primary">{r.list_name}</p>
+                              <p className="text-xs text-text-light">
+                                {new Date(r.import_date).toLocaleDateString()}
+                              </p>
+                            </td>
+                            <td className="px-4 py-3">
+                              {editingPubId === r.id ? (
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="text"
+                                    value={editingPubValue}
+                                    onChange={(e) => setEditingPubValue(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') savePubCode(r.id)
+                                      if (e.key === 'Escape') {
+                                        setEditingPubId(null)
+                                        setEditingPubValue('')
+                                      }
+                                    }}
+                                    autoFocus
+                                    className="w-16 px-1.5 py-0.5 border border-border-custom rounded text-xs font-mono text-navy focus:outline-none focus:ring-1 focus:ring-accent"
+                                    placeholder="TWSW"
+                                  />
+                                  <button
+                                    onClick={() => savePubCode(r.id)}
+                                    className="text-accent hover:text-accent-bright text-xs"
+                                    title="Save"
+                                  >
+                                    ✓
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setEditingPubId(null)
+                                      setEditingPubValue('')
+                                    }}
+                                    className="text-text-light hover:text-text-mid text-xs"
+                                    title="Cancel"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setEditingPubId(r.id)
+                                    setEditingPubValue(r.publication_code || '')
+                                  }}
+                                  className="inline-block px-2 py-0.5 bg-accent-wash text-accent text-xs font-mono rounded hover:bg-accent/20 transition-colors"
+                                  title="Click to edit"
+                                >
+                                  {r.publication_code || '+ add'}
+                                </button>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-right font-display text-lg text-navy tabular-nums">
+                              {r.imported_count.toLocaleString()}
+                            </td>
+                            <td className="px-4 py-3 text-right tabular-nums">
+                              {r.week1_opens !== null ? (
+                                <span className="text-accent font-medium">{r.week1_opens.toLocaleString()}</span>
+                              ) : (
+                                <span className="text-text-light">-</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-right tabular-nums">
+                              {r.week2_opens !== null ? (
+                                <span className="text-accent font-medium">{r.week2_opens.toLocaleString()}</span>
+                              ) : (
+                                <span className="text-text-light">-</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-right tabular-nums">
+                              {r.week3_opens !== null ? (
+                                <span className="text-accent font-medium">{r.week3_opens.toLocaleString()}</span>
+                              ) : (
+                                <span className="text-text-light">-</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-right tabular-nums">
+                              {r.week4_opens !== null ? (
+                                <span className="text-accent font-medium">{r.week4_opens.toLocaleString()}</span>
+                              ) : (
+                                <span className="text-text-light">-</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-right tabular-nums">
+                              {r.remaining_subs !== null ? (
+                                <span className="font-display text-lg text-navy">{r.remaining_subs.toLocaleString()}</span>
+                              ) : (
+                                <span className="text-text-light">-</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span
+                                className={`inline-block px-2.5 py-1 text-xs font-medium rounded-lg ${
+                                  r.status === 'completed'
+                                    ? 'bg-emerald-50 text-emerald-700'
+                                    : 'bg-accent-wash text-accent'
+                                }`}
+                              >
+                                {r.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <button
+                                onClick={() => handleDelete(r.id)}
+                                className="text-text-light hover:text-red-500 transition-colors"
+                                title="Delete"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                </svg>
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      }
+                    }
+
+                    return rows
+                  })
+                })()
               )}
             </tbody>
           </table>
