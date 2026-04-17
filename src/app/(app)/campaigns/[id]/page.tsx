@@ -168,7 +168,7 @@ export default function CampaignDetailPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          currentId: params.id,
+          campaignId: params.id,
           instanceId: instance || undefined,
           wpClientId: wpClientId || undefined,
         }),
