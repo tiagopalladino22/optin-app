@@ -46,6 +46,18 @@ export default function SegmentDetailPage() {
   const [subsLoading, setSubsLoading] = useState(false)
   const [subsCount, setSubsCount] = useState(0)
   const [deletingSub, setDeletingSub] = useState<number | null>(null)
+  const [exporting, setExporting] = useState(false)
+
+  // Performance stats
+  const [perfLoading, setPerfLoading] = useState(false)
+  const [perfStats, setPerfStats] = useState<{
+    campaignCount: number
+    avgOpenRate: number
+    avgCtr: number
+    totalSent: number
+    totalOpens: number
+    totalClicks: number
+  } | null>(null)
 
   const fetchSegment = useCallback(async () => {
     try {
@@ -185,6 +197,97 @@ export default function SegmentDetailPage() {
     }
   }
 
+  // Load avg performance from campaigns targeting this segment's lists
+  const loadPerformance = useCallback(async () => {
+    if (!segment) return
+    const listRule = segment.rules.find((r) => r.field === 'from_lists')
+    const listIds = listRule?.value ? listRule.value.split(',').map(Number).filter(Boolean) : []
+    if (listIds.length === 0) return
+
+    setPerfLoading(true)
+    try {
+      // Fetch finished campaigns
+      const allCampaigns: { id: number; sent: number; lists: { id: number }[] }[] = []
+      let page = 1
+      while (true) {
+        const res = await fetch(`/api/listmonk/campaigns?status=finished&per_page=100&page=${page}`)
+        if (!res.ok) break
+        const data = await res.json()
+        const results = data.data?.results || []
+        for (const c of results) {
+          const targets = (c.lists || []).some((l: { id: number }) => listIds.includes(l.id))
+          if (targets && c.sent > 0) {
+            allCampaigns.push({ id: c.id, sent: c.sent, lists: c.lists })
+          }
+        }
+        if (results.length < 100) break
+        page++
+      }
+
+      if (allCampaigns.length === 0) {
+        setPerfStats({ campaignCount: 0, avgOpenRate: 0, avgCtr: 0, totalSent: 0, totalOpens: 0, totalClicks: 0 })
+        return
+      }
+
+      // Fetch unique stats in batch
+      const ids = allCampaigns.map((c) => c.id).join(',')
+      const statsRes = await fetch(`/api/campaigns/unique-stats?ids=${ids}`)
+      const statsData = await statsRes.json()
+      const statsMap = statsData.data || {}
+
+      let totalSent = 0
+      let totalOpens = 0
+      let totalClicks = 0
+      for (const c of allCampaigns) {
+        const stats = statsMap[c.id]
+        totalSent += c.sent
+        totalOpens += stats?.uniqueOpens ?? 0
+        totalClicks += stats?.uniqueClicks ?? 0
+      }
+
+      setPerfStats({
+        campaignCount: allCampaigns.length,
+        avgOpenRate: totalSent > 0 ? parseFloat(((totalOpens / totalSent) * 100).toFixed(1)) : 0,
+        avgCtr: totalOpens > 0 ? parseFloat(((totalClicks / totalOpens) * 100).toFixed(1)) : 0,
+        totalSent,
+        totalOpens,
+        totalClicks,
+      })
+    } catch (err) {
+      console.error('Failed to load performance:', err)
+    } finally {
+      setPerfLoading(false)
+    }
+  }, [segment])
+
+  useEffect(() => {
+    if (segment && !editing) loadPerformance()
+  }, [segment, editing, loadPerformance])
+
+  function handleExport() {
+    if (subscribers.length === 0) return
+    setExporting(true)
+    try {
+      const headers = ['Email', 'Name', 'Lists', 'Attributes']
+      const rows = subscribers.map((s) => [
+        `"${s.email}"`,
+        `"${(s.name || '').replace(/"/g, '""')}"`,
+        `"${s.lists?.map((l) => l.name).join('; ') || ''}"`,
+        `"${JSON.stringify(s.attribs || {}).replace(/"/g, '""')}"`,
+      ].join(','))
+      const csv = [headers.join(','), ...rows].join('\n')
+      const blob = new Blob([csv], { type: 'text/csv' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `segment-${segment?.name || params.id}-${new Date().toISOString().slice(0, 10)}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setExporting(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -214,6 +317,13 @@ export default function SegmentDetailPage() {
         </div>
         {!editing && (
           <div className="flex items-center gap-3">
+            <button
+              onClick={handleExport}
+              disabled={exporting || subscribers.length === 0}
+              className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-surface rounded-lg disabled:opacity-50"
+            >
+              {exporting ? 'Exporting...' : 'Export CSV'}
+            </button>
             <button
               onClick={() => setEditing(true)}
               className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-surface rounded-lg"
@@ -305,28 +415,71 @@ export default function SegmentDetailPage() {
 
       {/* Segment Info Cards */}
       {!editing && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-surface rounded-xl border border-border-custom p-4">
-            <p className="text-xs text-text-light uppercase tracking-wider mb-1">Subscribers</p>
-            <p className="font-display text-3xl text-navy">
-              {subsLoading ? '...' : subsCount.toLocaleString()}
-            </p>
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-surface rounded-xl border border-border-custom p-4">
+              <p className="text-xs text-text-light uppercase tracking-wider mb-1">Subscribers</p>
+              <p className="font-display text-3xl text-navy">
+                {subsLoading ? '...' : subsCount.toLocaleString()}
+              </p>
+            </div>
+            <div className="bg-surface rounded-xl border border-border-custom p-4">
+              <p className="text-xs text-text-light uppercase tracking-wider mb-1">Rules</p>
+              <p className="font-display text-3xl text-navy">{segment.rules.length}</p>
+            </div>
+            <div className="bg-surface rounded-xl border border-border-custom p-4">
+              <p className="text-xs text-text-light uppercase tracking-wider mb-1">Logic</p>
+              <p className="font-display text-3xl text-navy uppercase">{segment.logic}</p>
+            </div>
+            <div className="bg-surface rounded-xl border border-border-custom p-4">
+              <p className="text-xs text-text-light uppercase tracking-wider mb-1">Exported</p>
+              <p className="font-display text-3xl text-navy">
+                {segment.exported_list_id ? `#${segment.exported_list_id}` : '—'}
+              </p>
+            </div>
           </div>
-          <div className="bg-surface rounded-xl border border-border-custom p-4">
-            <p className="text-xs text-text-light uppercase tracking-wider mb-1">Rules</p>
-            <p className="font-display text-3xl text-navy">{segment.rules.length}</p>
+
+          {/* Performance Stats */}
+          <div className="bg-surface rounded-xl border border-border-custom p-5">
+            <h2 className="text-sm font-medium text-text-mid uppercase tracking-wider mb-4">
+              Avg Campaign Performance
+              {perfStats && !perfLoading && (
+                <span className="text-text-light font-normal normal-case ml-2">
+                  ({perfStats.campaignCount} campaign{perfStats.campaignCount !== 1 ? 's' : ''})
+                </span>
+              )}
+            </h2>
+            {perfLoading ? (
+              <div className="flex gap-4">
+                <div className="skeleton h-16 w-32" />
+                <div className="skeleton h-16 w-32" />
+              </div>
+            ) : perfStats && perfStats.campaignCount > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div>
+                  <p className="text-xs text-text-light mb-1">Avg Open Rate</p>
+                  <p className="font-display text-3xl text-accent">{perfStats.avgOpenRate}%</p>
+                  <p className="text-xs text-text-light mt-0.5">{perfStats.totalOpens.toLocaleString()} opens / {perfStats.totalSent.toLocaleString()} sent</p>
+                </div>
+                <div>
+                  <p className="text-xs text-text-light mb-1">Avg CTR</p>
+                  <p className="font-display text-3xl text-accent">{perfStats.avgCtr}%</p>
+                  <p className="text-xs text-text-light mt-0.5">{perfStats.totalClicks.toLocaleString()} clicks / {perfStats.totalOpens.toLocaleString()} opens</p>
+                </div>
+                <div>
+                  <p className="text-xs text-text-light mb-1">Total Sent</p>
+                  <p className="font-display text-3xl text-navy">{perfStats.totalSent.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-text-light mb-1">Campaigns</p>
+                  <p className="font-display text-3xl text-navy">{perfStats.campaignCount}</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-text-light">No finished campaigns targeting this segment&apos;s lists yet.</p>
+            )}
           </div>
-          <div className="bg-surface rounded-xl border border-border-custom p-4">
-            <p className="text-xs text-text-light uppercase tracking-wider mb-1">Logic</p>
-            <p className="font-display text-3xl text-navy uppercase">{segment.logic}</p>
-          </div>
-          <div className="bg-surface rounded-xl border border-border-custom p-4">
-            <p className="text-xs text-text-light uppercase tracking-wider mb-1">Exported</p>
-            <p className="font-display text-3xl text-navy">
-              {segment.exported_list_id ? `#${segment.exported_list_id}` : '—'}
-            </p>
-          </div>
-        </div>
+        </>
       )}
 
       {/* Subscribers Table */}
