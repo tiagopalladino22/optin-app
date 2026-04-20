@@ -45,6 +45,8 @@ export default function CampaignDetailPage() {
   const [wpClientsLoaded, setWpClientsLoaded] = useState(false)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
   const [showTestModal, setShowTestModal] = useState(false)
+  const [topLinks, setTopLinks] = useState<{ url: string; count: number }[]>([])
+  const [linksLoading, setLinksLoading] = useState(false)
   const { userRole } = useData()
 
   // Queue navigation
@@ -107,6 +109,28 @@ export default function CampaignDetailPage() {
         const statsData = await statsRes.json()
         if (statsData.data?.[params.id as string]) {
           setUniqueStats(statsData.data[params.id as string])
+        }
+
+        // Fetch top clicked links
+        setLinksLoading(true)
+        try {
+          const startDate = data.data.started_at || data.data.created_at || '2020-01-01T00:00:00Z'
+          const from = new Date(startDate).toISOString()
+          const to = new Date().toISOString()
+          const instanceSuffix = instanceParam ? `&instance=${instanceParam}` : ''
+          const linksRes = await fetch(
+            `/api/listmonk/campaigns/analytics/links?id=${params.id}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${instanceSuffix}`
+          )
+          if (linksRes.ok) {
+            const linksData = await linksRes.json()
+            const links = (linksData.data || [])
+              .sort((a: { count: number }, b: { count: number }) => b.count - a.count)
+            setTopLinks(links)
+          }
+        } catch {
+          // Link stats are optional
+        } finally {
+          setLinksLoading(false)
         }
       }
     } catch (err) {
@@ -361,6 +385,57 @@ export default function CampaignDetailPage() {
           </div>
         </dl>
       </div>
+
+      {/* Most Clicked Links */}
+      {(linksLoading || topLinks.length > 0) && (
+        <div className="bg-surface rounded-xl border border-border-custom overflow-hidden">
+          <div className="px-5 py-4 border-b border-border-custom">
+            <h2 className="text-sm font-medium text-text-mid uppercase tracking-wider">
+              Most Clicked Links
+            </h2>
+          </div>
+          {linksLoading ? (
+            <div className="p-5 space-y-3">
+              <div className="skeleton h-4 w-full" />
+              <div className="skeleton h-4 w-3/4" />
+              <div className="skeleton h-4 w-1/2" />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-offwhite text-text-light uppercase text-xs tracking-wider border-b border-border-custom">
+                    <th className="text-left px-4 py-3 font-medium w-8">#</th>
+                    <th className="text-left px-4 py-3 font-medium">Link</th>
+                    <th className="text-right px-4 py-3 font-medium">Clicks</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topLinks.map((link, i) => (
+                    <tr key={i} className="border-b border-border-custom last:border-0 hover:bg-offwhite/50">
+                      <td className="px-4 py-3 text-text-light font-mono text-xs">{i + 1}</td>
+                      <td className="px-4 py-3 min-w-0 max-w-md">
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-accent hover:text-accent-bright truncate block"
+                          title={link.url}
+                        >
+                          {link.url}
+                        </a>
+                      </td>
+                      <td className="px-4 py-3 text-right font-medium text-navy tabular-nums">
+                        {link.count.toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {showPreviewModal && (
         <CampaignPreviewModal
