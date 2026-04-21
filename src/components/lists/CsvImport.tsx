@@ -311,46 +311,112 @@ export default function CsvImport({ listId, clientId }: CsvImportProps) {
     setStep('split')
   }
 
+  const [importProgress, setImportProgress] = useState('')
+
   const handleImport = async () => {
     setStep('importing')
     setError(null)
+    setImportProgress('')
+
+    const BATCH_SIZE = 3000
 
     try {
       if (splitMode === 'single') {
-        // Original single-list import
-        const res = await fetch('/api/import/subscribers', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            listId: targetListId,
-            subscribers: validSubscribers,
-            clientId: clientId || undefined,
-          }),
-        })
+        let totalImported = 0
+        let totalSkipped = 0
+        const totalBatches = Math.ceil(validSubscribers.length / BATCH_SIZE)
 
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error || 'Import failed')
+        for (let i = 0; i < validSubscribers.length; i += BATCH_SIZE) {
+          const batch = validSubscribers.slice(i, i + BATCH_SIZE)
+          const batchNum = Math.floor(i / BATCH_SIZE) + 1
+          setImportProgress(`Batch ${batchNum} of ${totalBatches} (${Math.min(i + BATCH_SIZE, validSubscribers.length).toLocaleString()} / ${validSubscribers.length.toLocaleString()})`)
 
-        setResult(data)
+          const res = await fetch('/api/import/subscribers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              listId: targetListId,
+              subscribers: batch,
+              clientId: clientId || undefined,
+            }),
+          })
+
+          const text = await res.text()
+          let data
+          try { data = JSON.parse(text) } catch { throw new Error(text.slice(0, 200)) }
+          if (!res.ok) throw new Error(data.error || `Batch ${batchNum} failed`)
+
+          totalImported += data.imported || 0
+          totalSkipped += data.skipped || 0
+        }
+
+        setResult({ imported: totalImported, skipped: totalSkipped })
       } else {
-        // Split import — create lists and import subsets
-        const res = await fetch('/api/import/subscribers-split', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            subscribers: validSubscribers,
-            splits: listSplits.map((s) => ({
-              name: s.name.trim(),
-              count: s.count,
-            })),
-            clientId: clientId || undefined,
-          }),
+        // Split import — send each split separately with its own subscribers
+        let offset = 0
+        const listResults: { name: string; count: number }[] = []
+
+        for (let s = 0; s < listSplits.length; s++) {
+          const split = listSplits[s]
+          const splitSubs = validSubscribers.slice(offset, offset + split.count)
+          offset += split.count
+          setImportProgress(`Creating list "${split.name.trim()}" (${s + 1} of ${listSplits.length})`)
+
+          // Send this split's subscribers in batches
+          // First batch creates the list via split endpoint
+          const firstBatch = splitSubs.slice(0, BATCH_SIZE)
+          const createRes = await fetch('/api/import/subscribers-split', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              subscribers: firstBatch,
+              splits: [{ name: split.name.trim(), count: firstBatch.length }],
+              clientId: clientId || undefined,
+            }),
+          })
+
+          const createText = await createRes.text()
+          let createData
+          try { createData = JSON.parse(createText) } catch { throw new Error(createText.slice(0, 200)) }
+          if (!createRes.ok) throw new Error(createData.error || `Split "${split.name}" failed`)
+
+          let splitImported = createData.imported || firstBatch.length
+          const createdListId = createData.lists?.[0]?.id
+
+          // Send remaining batches to the created list
+          if (createdListId && splitSubs.length > BATCH_SIZE) {
+            for (let i = BATCH_SIZE; i < splitSubs.length; i += BATCH_SIZE) {
+              const batch = splitSubs.slice(i, i + BATCH_SIZE)
+              const batchNum = Math.floor(i / BATCH_SIZE) + 1
+              const totalSplitBatches = Math.ceil(splitSubs.length / BATCH_SIZE)
+              setImportProgress(`"${split.name.trim()}" — batch ${batchNum + 1} of ${totalSplitBatches}`)
+
+              const res = await fetch('/api/import/subscribers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  listId: createdListId,
+                  subscribers: batch,
+                  clientId: clientId || undefined,
+                }),
+              })
+
+              const text = await res.text()
+              let data
+              try { data = JSON.parse(text) } catch { throw new Error(text.slice(0, 200)) }
+              if (!res.ok) throw new Error(data.error || `Batch for "${split.name}" failed`)
+              splitImported += data.imported || 0
+            }
+          }
+
+          listResults.push({ name: split.name.trim(), count: splitImported })
+        }
+
+        setResult({
+          imported: listResults.reduce((sum, r) => sum + r.count, 0),
+          skipped: 0,
+          lists: listResults,
         })
-
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error || 'Import failed')
-
-        setResult(data)
       }
 
       setStep('done')
@@ -824,6 +890,9 @@ export default function CsvImport({ listId, clientId }: CsvImportProps) {
               ? 'Creating lists and importing subscribers...'
               : 'Importing subscribers...'}
           </p>
+          {importProgress && (
+            <p className="text-xs text-text-light mt-2">{importProgress}</p>
+          )}
         </div>
       )}
 

@@ -10,10 +10,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { rules, logic, returnAll } = (await request.json()) as {
+  const { rules, logic, returnAll, exportAll } = (await request.json()) as {
     rules: SegmentRule[]
     logic: 'and' | 'or'
     returnAll?: boolean
+    exportAll?: boolean
   }
 
   if (!rules?.length) {
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
     console.log('[Preview] Rules received:', JSON.stringify(rules))
     console.log('[Preview] Logic:', logic)
 
-    const limit = returnAll ? 200 : 10
+    const limit = exportAll ? undefined : returnAll ? 200 : 10
     const { count, subscribers } = await getMatchingSubscribers(rules, logic, {
       allowedListIds,
       maxResults: limit,

@@ -3,6 +3,10 @@ import { getSession } from '@/lib/auth'
 import { listmonkFetch, createClientListmonkFetch } from '@/lib/listmonk'
 import { createServiceRoleClient } from '@/lib/supabase-server'
 
+// Allow large CSV imports (up to 100MB)
+export const maxDuration = 300
+export const dynamic = 'force-dynamic'
+
 interface SubscriberPayload {
   email: string
   name?: string

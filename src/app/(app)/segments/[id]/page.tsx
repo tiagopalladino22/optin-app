@@ -264,12 +264,28 @@ export default function SegmentDetailPage() {
     if (segment && !editing) loadPerformance()
   }, [segment, editing, loadPerformance])
 
-  function handleExport() {
-    if (subscribers.length === 0) return
+  async function handleExport() {
+    if (!segment) return
     setExporting(true)
     try {
+      // Fetch ALL subscribers (no limit) for export
+      const res = await fetch('/api/segments/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rules: segment.rules,
+          logic: segment.logic,
+          exportAll: true,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      const allSubs: SubscriberResult[] = data.sample || []
+
+      if (allSubs.length === 0) return
+
       const headers = ['Email', 'Name', 'Lists', 'Attributes']
-      const rows = subscribers.map((s) => [
+      const rows = allSubs.map((s) => [
         `"${s.email}"`,
         `"${(s.name || '').replace(/"/g, '""')}"`,
         `"${s.lists?.map((l) => l.name).join('; ') || ''}"`,
@@ -280,9 +296,11 @@ export default function SegmentDetailPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `segment-${segment?.name || params.id}-${new Date().toISOString().slice(0, 10)}.csv`
+      a.download = `segment-${segment.name || params.id}-${new Date().toISOString().slice(0, 10)}.csv`
       a.click()
       URL.revokeObjectURL(url)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Export failed')
     } finally {
       setExporting(false)
     }

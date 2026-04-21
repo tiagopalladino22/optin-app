@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No valid email addresses found' }, { status: 400 })
   }
 
-  const results: { name: string; count: number }[] = []
+  const results: { name: string; count: number; id?: number }[] = []
   const errors: string[] = []
 
   let offset = 0
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
       // 4. Wait for import to finish before starting next one
       await waitForImport(fetchFn)
 
-      results.push({ name: split.name, count: chunk.length })
+      results.push({ name: split.name, count: chunk.length, id: newListId })
     } catch (err) {
       errors.push(`"${split.name}": ${err instanceof Error ? err.message : 'Unknown error'}`)
     }
