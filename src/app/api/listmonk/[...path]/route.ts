@@ -151,12 +151,23 @@ async function handleProxy(
 
   let customFetch: typeof listmonkFetch | null = null
   let instanceName: string | null = null
-  if (instanceId && session.role === 'admin') {
+
+  // Resolve which Listmonk instance to use
+  // 1. Admin with instance param — use that client's instance
+  // 2. Client user with dedicated instance — use their client's instance
+  // 3. Otherwise — use default
+  const resolveInstanceId = instanceId && session.role === 'admin'
+    ? instanceId
+    : session.role !== 'admin' && session.clientId
+      ? session.clientId
+      : null
+
+  if (resolveInstanceId) {
     const svc = await createServiceRoleClient()
     const { data: client } = await svc
       .from('clients')
       .select('name, listmonk_url, listmonk_username, listmonk_password')
-      .eq('id', instanceId)
+      .eq('id', resolveInstanceId)
       .single()
     if (client?.listmonk_url && client?.listmonk_username && client?.listmonk_password) {
       customFetch = createClientListmonkFetch({
@@ -165,19 +176,21 @@ async function handleProxy(
         password: client.listmonk_password,
       })
       instanceName = client.name
-    } else {
-      // Instance ID was passed but credentials are incomplete — return empty
+    } else if (instanceId && session.role === 'admin') {
+      // Admin passed instance ID but credentials are incomplete — return empty
       console.warn(`[Proxy] Instance ${instanceId} (${client?.name}) has incomplete credentials`)
       return NextResponse.json({
         data: { results: [], total: 0, per_page: 0, page: 1 },
       })
     }
+    // For client users with no credentials on their client record,
+    // fall through to use the default instance
   }
 
   const queryString = url.searchParams.toString()
   const fullPath = queryString ? `${pathStr}?${queryString}` : pathStr
   // Cache key includes instance so different instances don't collide
-  const cacheKey = instanceId ? `${instanceId}:${fullPath}` : fullPath
+  const cacheKey = resolveInstanceId ? `${resolveInstanceId}:${fullPath}` : fullPath
 
   let data: unknown
   let status: number
