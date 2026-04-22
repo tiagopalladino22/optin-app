@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
@@ -52,7 +51,8 @@ export default function Sidebar() {
       }}
     >
       <div className="px-5 py-5 flex items-center gap-3">
-        <Image src="/logo.png" alt="OPTIN" width={120} height={40} className="object-contain" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="https://assets.cdn.filesafe.space/uV5Ao6zz1HK4AbvPQ1Of/media/6997cfc908245e32ebddf688.png" alt="OPTIN" width={120} height={40} className="object-contain" />
       </div>
 
       <nav className="flex-1 px-3 py-2 space-y-0.5">

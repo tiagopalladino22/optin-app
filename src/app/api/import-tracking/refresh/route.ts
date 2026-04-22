@@ -6,20 +6,37 @@ import { pushToGrowth } from '@/lib/webhook-client'
 
 type FetchFn = (path: string, options?: RequestInit) => Promise<Response>
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const session = await getSession()
     if (!session || session.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Optional: only refresh specific records
+    let filterIds: string[] | null = null
+    try {
+      const body = await request.json()
+      if (Array.isArray(body?.ids) && body.ids.length > 0) {
+        filterIds = body.ids
+      }
+    } catch {
+      // No body = refresh all tracking records
+    }
+
     const supabase = await createServiceRoleClient()
     const results: { id: string; list_id: number; week: number; status: string }[] = []
 
-    const { data: records, error } = await supabase
+    let query = supabase
       .from('import_tracking')
       .select('*')
       .eq('status', 'tracking')
+
+    if (filterIds) {
+      query = query.in('id', filterIds)
+    }
+
+    const { data: records, error } = await query
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     if (!records || records.length === 0) {

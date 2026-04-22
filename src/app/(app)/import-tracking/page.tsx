@@ -272,13 +272,22 @@ export default function ImportTrackingPage() {
   }
 
   async function handleRefresh() {
+    if (selectedRecords.size === 0) {
+      setError('Select the records you want to refresh first')
+      return
+    }
     setRefreshing(true)
     setError('')
     try {
-      const res = await fetch('/api/import-tracking/refresh', { method: 'POST' })
+      const res = await fetch('/api/import-tracking/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(selectedRecords) }),
+      })
       if (!res.ok) throw new Error('Failed to refresh')
       const data = await res.json()
       setSuccess(`Snapshots refreshed! ${data.message || ''}`)
+      clearSelection()
       fetchRecords()
       setTimeout(() => setSuccess(''), 3000)
     } catch {
@@ -455,10 +464,10 @@ export default function ImportTrackingPage() {
         <div className="flex gap-3">
           <button
             onClick={handleRefresh}
-            disabled={refreshing}
+            disabled={refreshing || selectedRecords.size === 0}
             className="px-4 py-2 border border-border-custom text-text-mid hover:bg-surface rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
           >
-            {refreshing ? 'Refreshing...' : 'Refresh Snapshots'}
+            {refreshing ? 'Refreshing...' : selectedRecords.size > 0 ? `Refresh ${selectedRecords.size} Selected` : 'Refresh Snapshots'}
           </button>
           <button
             onClick={() => setShowForm(!showForm)}
