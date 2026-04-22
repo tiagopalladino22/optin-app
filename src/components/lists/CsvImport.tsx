@@ -36,6 +36,7 @@ interface ListSplit {
   id: string
   name: string
   count: number
+  existingListId?: number  // set when splitting to existing lists
 }
 
 function parseCsv(text: string): { headers: string[]; rows: string[][] } {
@@ -110,7 +111,7 @@ export default function CsvImport({ listId, clientId }: CsvImportProps) {
   const [dragOver, setDragOver] = useState(false)
 
   // Split mode
-  const [splitMode, setSplitMode] = useState<'single' | 'split'>(listId ? 'single' : 'split')
+  const [splitMode, setSplitMode] = useState<'single' | 'split' | 'split_existing'>(listId ? 'single' : 'split')
   const [listSplits, setListSplits] = useState<ListSplit[]>([])
 
   // List selector (when no listId provided)
@@ -297,6 +298,12 @@ export default function CsvImport({ listId, clientId }: CsvImportProps) {
     if (splitMode === 'single') {
       return !!targetListId
     }
+    if (splitMode === 'split_existing') {
+      if (listSplits.length === 0) return false
+      if (listSplits.some((s) => !s.existingListId || s.count <= 0)) return false
+      if (totalAssigned > validSubscribers.length) return false
+      return true
+    }
     if (listSplits.length === 0) return false
     if (listSplits.some((s) => !s.name.trim() || s.count <= 0)) return false
     if (totalAssigned > validSubscribers.length) return false
@@ -351,8 +358,51 @@ export default function CsvImport({ listId, clientId }: CsvImportProps) {
         }
 
         setResult({ imported: totalImported, skipped: totalSkipped })
+      } else if (splitMode === 'split_existing') {
+        // Split to existing lists — batch subscribers to each list
+        let offset = 0
+        const listResults: { name: string; count: number }[] = []
+
+        for (let s = 0; s < listSplits.length; s++) {
+          const split = listSplits[s]
+          if (!split.existingListId) continue
+          const splitSubs = validSubscribers.slice(offset, offset + split.count)
+          offset += split.count
+          let splitImported = 0
+
+          const totalSplitBatches = Math.ceil(splitSubs.length / BATCH_SIZE)
+          for (let i = 0; i < splitSubs.length; i += BATCH_SIZE) {
+            const batch = splitSubs.slice(i, i + BATCH_SIZE)
+            const batchNum = Math.floor(i / BATCH_SIZE) + 1
+            setImportProgress(`"${split.name}" — batch ${batchNum} of ${totalSplitBatches} (list ${s + 1} of ${listSplits.length})`)
+
+            const res = await fetch('/api/import/subscribers', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                listId: split.existingListId,
+                subscribers: batch,
+                clientId: clientId || undefined,
+              }),
+            })
+
+            const text = await res.text()
+            let data
+            try { data = JSON.parse(text) } catch { throw new Error(text.slice(0, 200)) }
+            if (!res.ok) throw new Error(data.error || `Batch for "${split.name}" failed`)
+            splitImported += data.imported || 0
+          }
+
+          listResults.push({ name: split.name, count: splitImported })
+        }
+
+        setResult({
+          imported: listResults.reduce((sum, r) => sum + r.count, 0),
+          skipped: 0,
+          lists: listResults,
+        })
       } else {
-        // Split import — send each split separately with its own subscribers
+        // Split import — send each split separately with its own subscribers (create new lists)
         let offset = 0
         const listResults: { name: string; count: number }[] = []
 
@@ -633,7 +683,20 @@ export default function CsvImport({ listId, clientId }: CsvImportProps) {
                   : 'border-border-custom text-text-mid hover:bg-offwhite'
               }`}
             >
-              Split into multiple lists
+              Split into new lists
+            </button>
+            <button
+              onClick={() => {
+                setSplitMode('split_existing')
+                setListSplits([])
+              }}
+              className={`flex-1 p-3 rounded-lg border text-sm font-medium transition-colors ${
+                splitMode === 'split_existing'
+                  ? 'border-accent bg-accent-wash text-accent'
+                  : 'border-border-custom text-text-mid hover:bg-offwhite'
+              }`}
+            >
+              Split into existing lists
             </button>
           </div>
 
@@ -671,7 +734,122 @@ export default function CsvImport({ listId, clientId }: CsvImportProps) {
             </div>
           )}
 
-          {/* Split configuration */}
+          {/* Split to existing lists */}
+          {splitMode === 'split_existing' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-text-light">
+                  Select existing lists and assign row counts.
+                </p>
+                <div className="text-sm">
+                  <span className={remaining < 0 ? 'text-red-600 font-medium' : 'text-text-light'}>
+                    {remaining < 0
+                      ? `${Math.abs(remaining)} over limit`
+                      : `${remaining} unassigned`}
+                  </span>
+                  <span className="text-text-light"> / {validSubscribers.length} total</span>
+                </div>
+              </div>
+
+              {/* Add list selector */}
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={listSearchQuery}
+                  onChange={(e) => setListSearchQuery(e.target.value)}
+                  placeholder="Search lists to add..."
+                  className="block w-full border border-border-custom rounded-lg px-3 py-2 text-sm text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                />
+                <div className="max-h-36 overflow-y-auto border border-border-custom rounded-lg">
+                  {filteredAvailableLists
+                    .filter((l) => !listSplits.some((s) => s.existingListId === l.id))
+                    .map((list) => (
+                      <button
+                        key={list.id}
+                        onClick={() => {
+                          const perList = listSplits.length === 0 ? validSubscribers.length : 0
+                          setListSplits((prev) => [
+                            ...prev,
+                            { id: generateId(), name: list.name, count: perList, existingListId: list.id },
+                          ])
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-offwhite/50 text-text-mid transition-colors"
+                      >
+                        <span>{list.name}</span>
+                        <span className="text-xs text-text-light">{list.subscriber_count.toLocaleString()} subs</span>
+                      </button>
+                    ))}
+                </div>
+              </div>
+
+              {/* Selected lists with counts */}
+              {listSplits.map((split, index) => (
+                <div
+                  key={split.id}
+                  className="flex items-center gap-3 bg-offwhite rounded-lg border border-border-custom p-3"
+                >
+                  <span className="text-sm font-medium text-text-light w-6 shrink-0">
+                    {index + 1}.
+                  </span>
+                  <span className="flex-1 text-sm text-navy font-medium truncate">
+                    {split.name}
+                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <input
+                      type="number"
+                      value={split.count || ''}
+                      onChange={(e) =>
+                        updateListSplit(split.id, {
+                          count: Math.max(0, parseInt(e.target.value) || 0),
+                        })
+                      }
+                      placeholder="0"
+                      min="0"
+                      max={validSubscribers.length}
+                      className="w-24 border border-border-custom rounded-lg px-3 py-1.5 text-sm text-right text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                    />
+                    <span className="text-xs text-text-light">rows</span>
+                  </div>
+                  <button
+                    onClick={() => removeListSplit(split.id)}
+                    className="p-1 text-text-light hover:text-red-500 shrink-0"
+                    title="Remove"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+
+              {remaining > 0 && listSplits.length > 0 && (
+                <button
+                  onClick={() => {
+                    const perList = Math.floor(remaining / listSplits.length)
+                    const extra = remaining % listSplits.length
+                    setListSplits((prev) =>
+                      prev.map((s, i) => ({
+                        ...s,
+                        count: s.count + perList + (i < extra ? 1 : 0),
+                      }))
+                    )
+                  }}
+                  className="text-sm text-text-light hover:text-text-mid"
+                >
+                  Distribute remaining evenly
+                </button>
+              )}
+
+              {remaining < 0 && (
+                <p className="text-sm text-red-600">
+                  You have assigned more rows than available. Please reduce the counts.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Split configuration (new lists) */}
           {splitMode === 'split' && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
