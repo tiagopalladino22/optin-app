@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { createServiceRoleClient } from '@/lib/supabase-server'
 import { createApolloFetch, buildSearchBody, hasAnyFilter, SlotFilters, APOLLO_SEARCH_PATH } from '@/lib/apollo'
+import { isDemoMode } from '@/lib/demo/config'
+import { buildDemoSourcingResponse } from '@/lib/demo/fixtures/sourcing'
 
 interface ClientSourcingConfig {
   sourcing_window_day_open: number | null
@@ -68,6 +70,8 @@ function resolveClientId(session: { role: string; clientId: string | null }, ove
 
 // GET /api/sourcing/slots — returns { week, client, slots: [slot1, slot2, slot3] }
 export async function GET(request: NextRequest) {
+  if (isDemoMode()) return NextResponse.json(buildDemoSourcingResponse())
+
   const session = await getSession()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -138,6 +142,8 @@ export async function GET(request: NextRequest) {
 
 // PUT /api/sourcing/slots — upsert a draft slot's filters
 export async function PUT(request: NextRequest) {
+  if (isDemoMode()) return NextResponse.json({ ok: true })
+
   const session = await getSession()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -209,6 +215,8 @@ export async function PUT(request: NextRequest) {
 // Filters are optional — if provided, they're saved as the final filter state
 // before locking. This lets the client submit draft + allocation in one call.
 export async function POST(request: NextRequest) {
+  if (isDemoMode()) return NextResponse.json({ ok: true })
+
   const session = await getSession()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -325,6 +333,8 @@ export async function POST(request: NextRequest) {
 
 // DELETE /api/sourcing/slots — clear a slot back to empty draft
 export async function DELETE(request: NextRequest) {
+  if (isDemoMode()) return NextResponse.json({ ok: true })
+
   const session = await getSession()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

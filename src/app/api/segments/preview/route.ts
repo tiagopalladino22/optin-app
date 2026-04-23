@@ -2,9 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { createServiceRoleClient } from '@/lib/supabase-server'
 import { getMatchingSubscribers, type SegmentRule } from '@/lib/automation-engine'
+import { isDemoMode } from '@/lib/demo/config'
 
 // POST preview segment: returns matching subscriber count + sample rows
 export async function POST(request: NextRequest) {
+  if (isDemoMode()) {
+    return NextResponse.json({
+      count: 12480,
+      sample: [
+        { email: 'jane@example.com', name: 'Jane Cooper' },
+        { email: 'tom@example.com', name: 'Tom Reilly' },
+        { email: 'priya@example.com', name: 'Priya Singh' },
+      ],
+    })
+  }
+
   const session = await getSession()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

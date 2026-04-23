@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SegmentRuleEditor, { type SegmentRule } from '@/components/segments/SegmentRuleEditor'
+
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
 
 interface PreviewResult {
   count: number
@@ -18,6 +20,9 @@ interface PreviewResult {
 
 export default function NewSegmentPage() {
   const router = useRouter()
+  useEffect(() => {
+    if (DEMO_MODE) router.replace('/segments')
+  }, [router])
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [rules, setRules] = useState<SegmentRule[]>([

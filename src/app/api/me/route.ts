@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { createServiceRoleClient } from '@/lib/supabase-server'
+import { DEMO_ALLOWED_SECTIONS, isDemoMode } from '@/lib/demo/config'
 
 const DEFAULT_SECTIONS = ['dashboard', 'lists', 'campaigns', 'stats']
 
@@ -8,6 +9,16 @@ export async function GET() {
   const session = await getSession()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  if (isDemoMode()) {
+    return NextResponse.json({
+      id: session.id,
+      email: session.email,
+      role: session.role,
+      clientId: session.clientId,
+      allowedSections: DEMO_ALLOWED_SECTIONS,
+    })
   }
 
   let allowedSections: string[] | null = null

@@ -5,6 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SegmentRuleEditor, { type SegmentRule } from '@/components/segments/SegmentRuleEditor'
 
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
+
 interface Segment {
   id: string
   name: string
@@ -333,7 +335,7 @@ export default function SegmentDetailPage() {
             <p className="text-sm text-text-light mt-1">{segment.description}</p>
           )}
         </div>
-        {!editing && (
+        {!editing && !DEMO_MODE && (
           <div className="flex items-center gap-3">
             <button
               onClick={handleExport}

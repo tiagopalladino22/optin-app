@@ -7,6 +7,7 @@ import InstanceSelector from '@/components/InstanceSelector'
 import { useData } from '@/lib/DataProvider'
 
 const PER_PAGE = 10
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
 
 export default function ListsPage() {
   const { lists, listsLoading, selectedInstanceId } = useData()
@@ -43,12 +44,14 @@ export default function ListsPage() {
         <h1 className="font-display text-3xl tracking-wide text-navy uppercase">Lists</h1>
         <div className="flex items-center gap-3">
           <InstanceSelector />
-          <Link
-            href="/lists/new"
-            className="px-4 py-2 bg-accent text-white hover:bg-accent-bright rounded-lg font-medium text-sm transition-colors"
-          >
-            Create List
-          </Link>
+          {!DEMO_MODE && (
+            <Link
+              href="/lists/new"
+              className="px-4 py-2 bg-accent text-white hover:bg-accent-bright rounded-lg font-medium text-sm transition-colors"
+            >
+              Create List
+            </Link>
+          )}
         </div>
       </div>
 

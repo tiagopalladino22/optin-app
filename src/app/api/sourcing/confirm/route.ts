@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { createServiceRoleClient } from '@/lib/supabase-server'
+import { isDemoMode } from '@/lib/demo/config'
 
 // Returns Monday of the current ISO week (UTC) as YYYY-MM-DD.
 function currentWeekStart(): string {
@@ -19,6 +20,8 @@ function resolveClientId(session: { role: string; clientId: string | null }, ove
 // POST /api/sourcing/confirm — finalizes the current week so that no more
 // edits are allowed. Requires at least one submitted segment.
 export async function POST(request: NextRequest) {
+  if (isDemoMode()) return NextResponse.json({ ok: true })
+
   const session = await getSession()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

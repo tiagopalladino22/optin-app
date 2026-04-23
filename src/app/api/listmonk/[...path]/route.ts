@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase-server'
 import { listmonkFetch, createClientListmonkFetch } from '@/lib/listmonk'
+import { isDemoMode } from '@/lib/demo/config'
+import { tryDemoListmonkResponse } from '@/lib/demo/listmonk-router'
 
 // Map URL path segments to resource types for filtering
 const RESOURCE_TYPE_MAP: Record<string, string> = {
@@ -114,6 +116,12 @@ async function handleProxy(
   params: { path: string[] },
   method: string
 ) {
+  if (isDemoMode()) {
+    const url = new URL(request.url)
+    const pathStr = params.path.join('/')
+    return tryDemoListmonkResponse(pathStr, method, url.searchParams)!
+  }
+
   const session = await getSessionAndClient()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

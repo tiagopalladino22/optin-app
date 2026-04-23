@@ -1,4 +1,5 @@
 import { createServerSupabaseClient, createServiceRoleClient } from './supabase-server'
+import { DEMO_SESSION, isDemoMode } from './demo/config'
 
 export type UserRole = 'admin' | 'client'
 
@@ -10,6 +11,8 @@ export interface SessionUser {
 }
 
 export async function getSession(): Promise<SessionUser | null> {
+  if (isDemoMode()) return DEMO_SESSION
+
   const supabase = await createServerSupabaseClient()
   const { data: { user }, error } = await supabase.auth.getUser()
 

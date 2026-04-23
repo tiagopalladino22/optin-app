@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { createServiceRoleClient } from '@/lib/supabase-server'
 import { createApolloFetch } from '@/lib/apollo'
+import { isDemoMode } from '@/lib/demo/config'
 
 // Location validator — confirms that a user-typed location matches something in Apollo's index.
 // We can't enumerate all locations, so we probe by sending the query as a person_locations filter
@@ -37,19 +38,25 @@ export async function GET(request: NextRequest) {
     })
   }
 
-  const supabase = await createServiceRoleClient()
-  const { data: client } = await supabase
-    .from('clients')
-    .select('apollo_api_key')
-    .eq('id', clientId)
-    .single()
+  let apiKey: string | null | undefined
+  if (isDemoMode()) {
+    apiKey = process.env.DEMO_APOLLO_API_KEY
+  } else {
+    const supabase = await createServiceRoleClient()
+    const { data: client } = await supabase
+      .from('clients')
+      .select('apollo_api_key')
+      .eq('id', clientId)
+      .single()
+    apiKey = client?.apollo_api_key
+  }
 
-  if (!client?.apollo_api_key) {
+  if (!apiKey) {
     return NextResponse.json({ suggestions: [], error: 'no_api_key' })
   }
 
   try {
-    const apolloFetch = createApolloFetch(client.apollo_api_key)
+    const apolloFetch = createApolloFetch(apiKey)
     const res = await apolloFetch('mixed_people/search', {
       person_locations: [q],
       page: 1,

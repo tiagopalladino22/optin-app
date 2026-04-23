@@ -5,6 +5,8 @@ import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import CsvImport from '@/components/lists/CsvImport'
 
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
+
 interface ListDetail {
   id: number
   name: string
@@ -87,7 +89,7 @@ export default function ListDetailPage() {
         </div>
       )}
 
-      <CsvImport listId={list.id} />
+      {!DEMO_MODE && <CsvImport listId={list.id} />}
     </div>
   )
 }

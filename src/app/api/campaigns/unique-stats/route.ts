@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { listmonkFetch, createClientListmonkFetch } from '@/lib/listmonk'
 import { createServiceRoleClient } from '@/lib/supabase-server'
+import { isDemoMode } from '@/lib/demo/config'
+import { getDemoCampaignById } from '@/lib/demo/fixtures/campaigns'
 
 type FetchFn = (path: string, options?: RequestInit) => Promise<Response>
 
@@ -24,6 +26,21 @@ export async function GET(request: NextRequest) {
   const campaignIds = idsParam.split(',').map(Number).filter(Boolean)
   if (campaignIds.length === 0) {
     return NextResponse.json({ error: 'No valid campaign IDs' }, { status: 400 })
+  }
+
+  if (isDemoMode()) {
+    const data: Record<number, { uniqueOpens: number; uniqueClicks: number; unsubs: number }> = {}
+    for (const id of campaignIds) {
+      const c = getDemoCampaignById(id)
+      if (c) {
+        data[id] = {
+          uniqueOpens: Math.round(c.views * 0.78),
+          uniqueClicks: Math.round(c.clicks * 0.85),
+          unsubs: Math.round(c.sent * 0.001),
+        }
+      }
+    }
+    return NextResponse.json({ data })
   }
 
   // Optional instance override

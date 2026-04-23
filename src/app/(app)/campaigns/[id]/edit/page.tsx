@@ -6,6 +6,8 @@ import CampaignPreviewModal from '@/components/campaigns/CampaignPreviewModal'
 import SendTestModal from '@/components/campaigns/SendTestModal'
 import ListPicker from '@/components/campaigns/ListPicker'
 
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
+
 interface ListOption {
   id: number
   name: string
@@ -23,6 +25,10 @@ export default function EditCampaignPage() {
   const searchParams = useSearchParams()
   const campaignId = Number(params.id)
   const instanceId = searchParams.get('instance') || undefined
+
+  useEffect(() => {
+    if (DEMO_MODE) router.replace(`/campaigns/${campaignId}`)
+  }, [router, campaignId])
 
   const [name, setName] = useState('')
   const [subject, setSubject] = useState('')

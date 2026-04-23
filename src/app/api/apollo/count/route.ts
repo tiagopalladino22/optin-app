@@ -9,6 +9,7 @@ import {
   APOLLO_SEARCH_PATH,
   APOLLO_CONTACTS_SEARCH_PATH,
 } from '@/lib/apollo'
+import { isDemoMode } from '@/lib/demo/config'
 
 // Simple in-memory TTL cache for count responses.
 // Key: `${clientId}:${JSON.stringify(filters)}`
@@ -62,19 +63,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ count: cached, cached: true })
   }
 
-  const supabase = await createServiceRoleClient()
-  const { data: client } = await supabase
-    .from('clients')
-    .select('apollo_api_key')
-    .eq('id', clientId)
-    .single()
+  let apiKey: string | null | undefined
+  if (isDemoMode()) {
+    apiKey = process.env.DEMO_APOLLO_API_KEY
+  } else {
+    const supabase = await createServiceRoleClient()
+    const { data: client } = await supabase
+      .from('clients')
+      .select('apollo_api_key')
+      .eq('id', clientId)
+      .single()
+    apiKey = client?.apollo_api_key
+  }
 
-  if (!client?.apollo_api_key) {
+  if (!apiKey) {
     return NextResponse.json({ count: null, error: 'no_api_key' })
   }
 
   try {
-    const apolloFetch = createApolloFetch(client.apollo_api_key)
+    const apolloFetch = createApolloFetch(apiKey)
     const requestBody = buildSearchBody(filters, 1)
 
     // Call both endpoints in parallel: total matches + already-saved contacts.

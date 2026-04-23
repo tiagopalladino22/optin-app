@@ -7,6 +7,8 @@ import { useData } from '@/lib/DataProvider'
 import CampaignPreviewModal from '@/components/campaigns/CampaignPreviewModal'
 import SendTestModal from '@/components/campaigns/SendTestModal'
 
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
+
 interface CampaignDetail {
   id: number
   name: string
@@ -249,7 +251,7 @@ export default function CampaignDetailPage() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {campaign.status === 'draft' && (
+          {!DEMO_MODE && campaign.status === 'draft' && (
             <Link
               href={`/campaigns/${currentId}/edit${qs}`}
               className="px-4 py-2 border border-border-custom text-text-mid hover:bg-offwhite rounded-lg font-medium text-sm transition-colors"
@@ -264,7 +266,7 @@ export default function CampaignDetailPage() {
           >
             Preview
           </button>
-          {campaign.status === 'draft' && (
+          {!DEMO_MODE && campaign.status === 'draft' && (
             <button
               type="button"
               onClick={() => setShowTestModal(true)}
@@ -273,7 +275,7 @@ export default function CampaignDetailPage() {
               Send Test
             </button>
           )}
-          {campaign.status === 'draft' && (
+          {!DEMO_MODE && campaign.status === 'draft' && (
             <button
               onClick={handleSend}
               disabled={sending}
@@ -282,13 +284,15 @@ export default function CampaignDetailPage() {
               {sending ? 'Starting...' : 'Send Campaign'}
             </button>
           )}
-          <button
-            onClick={handlePublishClick}
-            disabled={publishing}
-            className="px-4 py-2 border border-border-custom text-text-mid hover:bg-offwhite rounded-lg font-medium text-sm disabled:opacity-50 transition-colors"
-          >
-            {publishing ? 'Publishing...' : 'Publish to WordPress'}
-          </button>
+          {!DEMO_MODE && (
+            <button
+              onClick={handlePublishClick}
+              disabled={publishing}
+              className="px-4 py-2 border border-border-custom text-text-mid hover:bg-offwhite rounded-lg font-medium text-sm disabled:opacity-50 transition-colors"
+            >
+              {publishing ? 'Publishing...' : 'Publish to WordPress'}
+            </button>
+          )}
         </div>
       </div>
 

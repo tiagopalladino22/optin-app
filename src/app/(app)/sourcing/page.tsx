@@ -14,6 +14,8 @@ import {
 import { APOLLO_INDUSTRIES } from '@/lib/apollo-industries'
 import { departmentLabel } from '@/lib/apollo-departments'
 
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
+
 // Placeholder values — wire these to real per-client data later.
 const PLACEHOLDER_WEEKLY_TARGET = 8000
 const PLACEHOLDER_LAST_WEEK_RECEIVED = 7450
@@ -326,15 +328,17 @@ export default function SourcingPage() {
             for the week and you can&apos;t change them later. If something looks off, click
             &ldquo;Edit&rdquo; on any segment first.
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowFinalConfirm(true)}
-              disabled={confirmingWeek}
-              className="px-4 py-2 bg-accent text-white hover:bg-accent-bright rounded-lg text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              Confirm selection
-            </button>
-          </div>
+          {!DEMO_MODE && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowFinalConfirm(true)}
+                disabled={confirmingWeek}
+                className="px-4 py-2 bg-accent text-white hover:bg-accent-bright rounded-lg text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Confirm selection
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -745,13 +749,15 @@ function ActiveSegmentCard({
           </p>
           {countError && <p className="text-xs text-text-light">{countError}</p>}
         </div>
-        <button
-          onClick={onSubmit}
-          disabled={!canSubmit}
-          className="px-4 py-2 bg-accent text-white hover:bg-accent-bright rounded-lg text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          {isEditing ? 'Save changes' : 'Submit segment'}
-        </button>
+        {!DEMO_MODE && (
+          <button
+            onClick={onSubmit}
+            disabled={!canSubmit}
+            className="px-4 py-2 bg-accent text-white hover:bg-accent-bright rounded-lg text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {isEditing ? 'Save changes' : 'Submit segment'}
+          </button>
+        )}
       </div>
     </div>
   )

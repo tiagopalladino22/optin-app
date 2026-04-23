@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
+
 interface Segment {
   id: string
   name: string
@@ -70,12 +72,14 @@ export default function SegmentsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl tracking-wide text-navy uppercase">Segments</h1>
-        <Link
-          href="/segments/new"
-          className="px-4 py-2 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent-bright transition-colors"
-        >
-          Create Segment
-        </Link>
+        {!DEMO_MODE && (
+          <Link
+            href="/segments/new"
+            className="px-4 py-2 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent-bright transition-colors"
+          >
+            Create Segment
+          </Link>
+        )}
       </div>
 
       {segments.length === 0 ? (
@@ -135,13 +139,15 @@ export default function SegmentsPage() {
                       <Link href={`/segments/${seg.id}`} className="text-xs text-text-light hover:text-accent font-medium">
                         View
                       </Link>
-                      <button
-                        onClick={() => handleDelete(seg)}
-                        disabled={deleting === seg.id}
-                        className="text-xs text-red-500 hover:text-red-700 font-medium disabled:opacity-50"
-                      >
-                        {deleting === seg.id ? 'Deleting...' : 'Delete'}
-                      </button>
+                      {!DEMO_MODE && (
+                        <button
+                          onClick={() => handleDelete(seg)}
+                          disabled={deleting === seg.id}
+                          className="text-xs text-red-500 hover:text-red-700 font-medium disabled:opacity-50"
+                        >
+                          {deleting === seg.id ? 'Deleting...' : 'Delete'}
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

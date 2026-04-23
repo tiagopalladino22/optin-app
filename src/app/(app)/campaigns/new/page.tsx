@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ListPicker from '@/components/campaigns/ListPicker'
 
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
+
 interface ListOption {
   id: number
   name: string
@@ -16,6 +18,10 @@ interface TemplateOption {
 }
 
 export default function CreateCampaignPage() {
+  const router = useRouter()
+  useEffect(() => {
+    if (DEMO_MODE) router.replace('/campaigns')
+  }, [router])
   const [name, setName] = useState('')
   const [subject, setSubject] = useState('')
   const [fromName, setFromName] = useState('')
@@ -28,7 +34,6 @@ export default function CreateCampaignPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPreview, setShowPreview] = useState(false)
-  const router = useRouter()
 
   useEffect(() => {
     async function fetchOptions() {
