@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useData } from '@/lib/DataProvider'
 
 interface TrackingRecord {
   id: string
@@ -31,13 +32,8 @@ interface ListmonkList {
   subscriber_count?: number
 }
 
-interface Client {
-  id: string
-  name: string
-  listmonk_url: string | null
-}
-
 export default function ImportTrackingPage() {
+  const { selectedInstanceId } = useData()
   const [records, setRecords] = useState<TrackingRecord[]>([])
   const [lists, setLists] = useState<ListmonkList[]>([])
   const [loading, setLoading] = useState(true)
@@ -46,10 +42,6 @@ export default function ImportTrackingPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [listSearch, setListSearch] = useState('')
-
-  // Client selector
-  const [clients, setClients] = useState<Client[]>([])
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
 
   // Form state
   const [selectedLists, setSelectedLists] = useState<Set<number>>(new Set())
@@ -83,49 +75,32 @@ export default function ImportTrackingPage() {
     }
   }, [])
 
-  const fetchLists = useCallback(async (clientId?: string | null) => {
+  const fetchLists = useCallback(async (instanceId?: string | null) => {
     try {
-      if (clientId) {
-        const res = await fetch(`/api/settings/client-lists?client_id=${clientId}`)
-        if (!res.ok) return
+      const allLists: ListmonkList[] = []
+      let page = 1
+      const instanceParam = instanceId ? `&instance=${instanceId}` : ''
+      while (true) {
+        const res = await fetch(`/api/listmonk/lists?per_page=100&page=${page}${instanceParam}`)
+        if (!res.ok) break
         const data = await res.json()
-        setLists(data.data || [])
-      } else {
-        const allLists: ListmonkList[] = []
-        let page = 1
-        while (true) {
-          const res = await fetch(`/api/listmonk/lists?per_page=100&page=${page}`)
-          if (!res.ok) break
-          const data = await res.json()
-          const results = data?.data?.results || data?.results || []
-          allLists.push(...results)
-          if (results.length < 100) break
-          page++
-        }
-        setLists(allLists)
+        const results = data?.data?.results || data?.results || []
+        allLists.push(...results)
+        if (results.length < 100) break
+        page++
       }
+      setLists(allLists)
     } catch {
       // Lists fetch is optional
     }
   }, [])
 
-  // Fetch clients with their own Listmonk instance
-  useEffect(() => {
-    fetch('/api/settings/clients')
-      .then((res) => res.json())
-      .then((data) => {
-        const clientList = Array.isArray(data) ? data : data.data || []
-        setClients(clientList.filter((c: Client) => c.listmonk_url))
-      })
-      .catch(() => {})
-  }, [])
-
-  // Re-fetch lists when client changes
+  // Re-fetch lists when the global instance changes
   useEffect(() => {
     setLists([])
     setSelectedLists(new Set())
-    fetchLists(selectedClientId)
-  }, [selectedClientId, fetchLists])
+    fetchLists(selectedInstanceId)
+  }, [selectedInstanceId, fetchLists])
 
   useEffect(() => {
     fetchRecords()
@@ -230,6 +205,7 @@ export default function ImportTrackingPage() {
             import_date: detectImportDate(list.name),
             imported_count: list.subscriber_count || 0,
             group_id: targetGroupId,
+            client_id: selectedInstanceId || null,
           }),
         })
 
@@ -489,23 +465,6 @@ export default function ImportTrackingPage() {
         <div className="bg-surface rounded-xl border border-border-custom p-6 space-y-4">
           <h3 className="font-display text-xl tracking-wide text-navy uppercase">Track New Import</h3>
 
-          {clients.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-text-mid mb-1">Listmonk Instance</label>
-              <select
-                value={selectedClientId || ''}
-                onChange={(e) => setSelectedClientId(e.target.value || null)}
-                className="w-full border border-border-custom rounded-lg px-3 py-2 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-              >
-                <option value="">Default (optin150.com)</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} — {c.listmonk_url}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
 
           <div>
             <label className="block text-sm font-medium text-text-mid mb-1">Group (optional)</label>

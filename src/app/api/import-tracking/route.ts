@@ -33,18 +33,24 @@ export async function POST(req: NextRequest) {
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await req.json()
-    const { list_id, list_name, publication_code, import_date, imported_count, group_id } = body
+    const { list_id, list_name, publication_code, import_date, imported_count, group_id, client_id: bodyClientId } = body
 
     if (!list_id || !list_name || imported_count === undefined || imported_count === null) {
       return NextResponse.json({ error: 'list_id, list_name, and imported_count are required' }, { status: 400 })
     }
+
+    // Admin can tag a record with any client_id (set via global instance selector).
+    // Client users always tag with their own clientId.
+    const recordClientId = session.role === 'admin'
+      ? (bodyClientId || null)
+      : (session.clientId || null)
 
     const supabase = await createServiceRoleClient()
 
     const { data, error } = await supabase
       .from('import_tracking')
       .insert({
-        client_id: session.clientId || null,
+        client_id: recordClientId,
         list_id,
         list_name,
         publication_code: publication_code || null,
