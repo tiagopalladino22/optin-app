@@ -21,7 +21,6 @@ interface Props {
   logic: 'and' | 'or'
   onChange: (rules: SegmentRule[]) => void
   onLogicChange: (logic: 'and' | 'or') => void
-  publicationCode?: string  // When set, shows preview of matching lists for "All lists" mode
 }
 
 const FIELD_OPTIONS = [
@@ -74,7 +73,7 @@ function generateId() {
   return Math.random().toString(36).slice(2, 9)
 }
 
-export default function SegmentRuleEditor({ rules, logic, onChange, onLogicChange, publicationCode }: Props) {
+export default function SegmentRuleEditor({ rules, logic, onChange, onLogicChange }: Props) {
   const { selectedInstanceId } = useData()
   const [lists, setLists] = useState<ListOption[]>([])
   const [listsLoading, setListsLoading] = useState(true)
@@ -235,7 +234,7 @@ export default function SegmentRuleEditor({ rules, logic, onChange, onLogicChang
                   <p className="text-sm text-text-light">No lists found.</p>
                 ) : (
                   <div className="space-y-1">
-                    {/* All lists option — used with automations to auto-match by publication */}
+                    {/* All lists option — applies to every list in the selected instance */}
                     <label
                       className={`flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm font-medium transition-colors border-b border-border-custom mb-2 pb-2 ${
                         rule.value === 'all' ? 'bg-accent-wash text-accent' : 'hover:bg-surface text-text-mid'
@@ -248,31 +247,25 @@ export default function SegmentRuleEditor({ rules, logic, onChange, onLogicChang
                         onChange={() => updateRule(rule.id, { value: 'all', operator: 'all' })}
                         className="text-accent focus:ring-accent"
                       />
-                      <span>All lists (auto-match by publication)</span>
+                      <span>All lists in this instance</span>
                     </label>
                     {rule.value === 'all' && (() => {
-                      const code = publicationCode?.toUpperCase()
-                      const matching = code
-                        ? lists.filter((l) => l.name.toUpperCase().startsWith(code))
-                        : lists
                       return (
                         <div className="ml-6 mb-2 text-xs">
-                          {!code ? (
-                            <p className="text-amber-600">Select a publication to see matching lists.</p>
-                          ) : matching.length === 0 ? (
-                            <p className="text-text-light">No lists found starting with &quot;{code}&quot;</p>
+                          {lists.length === 0 ? (
+                            <p className="text-text-light">No lists in this instance.</p>
                           ) : (
                             <>
                               <p className="text-text-light mb-1">
-                                {matching.length} list{matching.length !== 1 ? 's' : ''} matching &quot;{code}&quot;:
+                                {lists.length} list{lists.length !== 1 ? 's' : ''} in this instance:
                               </p>
-                              {matching.slice(0, 5).map((l) => (
+                              {lists.slice(0, 5).map((l) => (
                                 <p key={l.id} className="text-text-mid py-0.5">
                                   {l.name} <span className="text-text-light">({l.subscriber_count.toLocaleString()} subs)</span>
                                 </p>
                               ))}
-                              {matching.length > 5 && (
-                                <p className="text-text-light mt-0.5">...and {matching.length - 5} more</p>
+                              {lists.length > 5 && (
+                                <p className="text-text-light mt-0.5">...and {lists.length - 5} more</p>
                               )}
                             </>
                           )}
