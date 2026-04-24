@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { createServiceRoleClient } from '@/lib/supabase-server'
-import { getMatchingSubscribers, type SegmentRule } from '@/lib/automation-engine'
+import { getMatchingSubscribers, getAllLists, type SegmentRule } from '@/lib/automation-engine'
 import { listmonkFetch, createClientListmonkFetch } from '@/lib/listmonk'
 import { isDemoMode } from '@/lib/demo/config'
 
@@ -78,8 +78,20 @@ export async function POST(request: NextRequest) {
     console.log('[Preview] Rules received:', JSON.stringify(rules))
     console.log('[Preview] Logic:', logic)
 
+    // Expand `from_lists: 'all'` to every list in the resolved Listmonk instance.
+    let resolvedRules = rules
+    if (rules.some((r) => r.field === 'from_lists' && r.value === 'all')) {
+      const allLists = await getAllLists(fetchFn)
+      const allIds = allLists.map((l) => l.id).join(',')
+      resolvedRules = rules.map((r) =>
+        r.field === 'from_lists' && r.value === 'all'
+          ? { ...r, value: allIds, operator: 'in' }
+          : r
+      )
+    }
+
     const limit = exportAll ? undefined : returnAll ? 200 : 10
-    const { count, subscribers } = await getMatchingSubscribers(rules, logic, {
+    const { count, subscribers } = await getMatchingSubscribers(resolvedRules, logic, {
       allowedListIds,
       maxResults: limit,
       fetchFn,

@@ -21,6 +21,9 @@ interface Props {
   logic: 'and' | 'or'
   onChange: (rules: SegmentRule[]) => void
   onLogicChange: (logic: 'and' | 'or') => void
+  // Override the global nav-bar instance selector. Used by automations
+  // where the parent form has its own Client picker.
+  instanceIdOverride?: string | null
 }
 
 const FIELD_OPTIONS = [
@@ -73,8 +76,9 @@ function generateId() {
   return Math.random().toString(36).slice(2, 9)
 }
 
-export default function SegmentRuleEditor({ rules, logic, onChange, onLogicChange }: Props) {
+export default function SegmentRuleEditor({ rules, logic, onChange, onLogicChange, instanceIdOverride }: Props) {
   const { selectedInstanceId } = useData()
+  const effectiveInstanceId = instanceIdOverride !== undefined ? instanceIdOverride : selectedInstanceId
   const [lists, setLists] = useState<ListOption[]>([])
   const [listsLoading, setListsLoading] = useState(true)
   const [listSearch, setListSearch] = useState('')
@@ -86,7 +90,7 @@ export default function SegmentRuleEditor({ rules, logic, onChange, onLogicChang
       try {
         const allLists: ListOption[] = []
         let page = 1
-        const instanceParam = selectedInstanceId ? `&instance=${selectedInstanceId}` : ''
+        const instanceParam = effectiveInstanceId ? `&instance=${effectiveInstanceId}` : ''
         while (true) {
           const res = await fetch(`/api/listmonk/lists?per_page=100&page=${page}${instanceParam}`)
           const data = await res.json()
@@ -105,7 +109,7 @@ export default function SegmentRuleEditor({ rules, logic, onChange, onLogicChang
       }
     }
     fetchLists()
-  }, [selectedInstanceId])
+  }, [effectiveInstanceId])
 
   const addRule = () => {
     onChange([...rules, { id: generateId(), field: '', operator: '', value: '' }])

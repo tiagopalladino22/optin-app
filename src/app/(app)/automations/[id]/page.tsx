@@ -136,7 +136,7 @@ function statusBadgeClass(status: string) {
 export default function AutomationDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { lists: allLists, instances } = useData()
+  const { instances } = useData()
   const [automation, setAutomation] = useState<Automation | null>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
@@ -220,19 +220,11 @@ export default function AutomationDetailPage() {
     setError(null)
     setPreview(null)
     try {
-      // "all lists" → every list in the linked client's instance
-      const resolvedRules = editValidRules.map((r) => {
-        if (r.field === 'from_lists' && r.value === 'all') {
-          const matchingIds = allLists.map((l) => l.id)
-          return { ...r, value: matchingIds.join(','), operator: 'in' }
-        }
-        return r
-      })
-
+      // "all lists" expansion is handled by the preview endpoint
       const res = await fetch('/api/segments/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rules: resolvedRules, logic: editLogic, instanceId: editClientId || null }),
+        body: JSON.stringify({ rules: editValidRules, logic: editLogic, instanceId: editClientId || null }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Preview failed')
@@ -420,6 +412,7 @@ export default function AutomationDetailPage() {
               logic={editLogic}
               onChange={setEditRules}
               onLogicChange={setEditLogic}
+              instanceIdOverride={editClientId || null}
             />
             <button
               onClick={handlePreview}

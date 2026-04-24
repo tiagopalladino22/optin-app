@@ -53,7 +53,7 @@ const ACTION_OPTIONS = [
 
 export default function NewAutomationPage() {
   const router = useRouter()
-  const { lists: allLists, instances, selectedInstanceId } = useData()
+  const { instances, selectedInstanceId } = useData()
   const [name, setName] = useState('')
   const [clientId, setClientId] = useState(selectedInstanceId || '')
 
@@ -95,22 +95,12 @@ export default function NewAutomationPage() {
     setError(null)
     setPreview(null)
     try {
-      // "all lists" now means every list in the linked client's instance.
-      // The client picker drives DataProvider's selectedInstanceId, which the
-      // SegmentRuleEditor + segments preview already use to fetch the right
-      // list set, so we just expand "all" to every list visible.
-      const resolvedRules = validRules.map((r) => {
-        if (r.field === 'from_lists' && r.value === 'all') {
-          const matchingIds = allLists.map((l) => l.id)
-          return { ...r, value: matchingIds.join(','), operator: 'in' }
-        }
-        return r
-      })
-
+      // "all lists" expansion happens server-side now — preview reads the
+      // linked client's Listmonk and substitutes every list ID itself.
       const res = await fetch('/api/segments/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rules: resolvedRules, logic, instanceId: clientId || null }),
+        body: JSON.stringify({ rules: validRules, logic, instanceId: clientId || null }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Preview failed')
@@ -207,6 +197,7 @@ export default function NewAutomationPage() {
           logic={logic}
           onChange={setRules}
           onLogicChange={setLogic}
+          instanceIdOverride={clientId || null}
         />
         <button
           onClick={handlePreview}
