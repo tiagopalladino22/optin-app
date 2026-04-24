@@ -119,9 +119,8 @@ export default function CampaignDetailPage() {
           const startDate = data.data.started_at || data.data.created_at || '2020-01-01T00:00:00Z'
           const from = new Date(startDate).toISOString()
           const to = new Date().toISOString()
-          const instanceSuffix = instanceParam ? `&instance=${instanceParam}` : ''
           const linksRes = await fetch(
-            `/api/listmonk/campaigns/analytics/links?id=${params.id}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${instanceSuffix}`
+            `/api/listmonk/campaigns/analytics/links?id=${params.id}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${instanceParam}`
           )
           if (linksRes.ok) {
             const linksData = await linksRes.json()
