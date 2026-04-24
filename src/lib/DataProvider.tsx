@@ -106,22 +106,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [allowedSections, setAllowedSections] = useState<string[] | null>(null)
   const [instances, setInstances] = useState<ClientInstance[]>([])
+  // Each session starts on the default instance. Selection is in-memory only —
+  // persisting it in localStorage caused stale selections (deleted clients,
+  // race with the instances fetch) where the selector showed a non-default
+  // instance but data came from default.
   const [selectedInstanceId, setSelectedInstanceIdState] = useState<string | null>(null)
-
-  // Persist selection in localStorage
   const setSelectedInstanceId = useCallback((id: string | null) => {
     setSelectedInstanceIdState(id)
     if (typeof window !== 'undefined') {
-      if (id) localStorage.setItem('selectedInstanceId', id)
-      else localStorage.removeItem('selectedInstanceId')
-    }
-  }, [])
-
-  // Load saved selection on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('selectedInstanceId')
-      if (saved) setSelectedInstanceIdState(saved)
+      // Clean up any persisted value from earlier versions so it can't resurface.
+      localStorage.removeItem('selectedInstanceId')
     }
   }, [])
 
