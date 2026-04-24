@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import Pagination from '@/components/ui/Pagination'
-import InstanceSelector from '@/components/InstanceSelector'
 import { useData } from '@/lib/DataProvider'
 
 const PER_PAGE = 10
@@ -42,17 +41,14 @@ export default function ListsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl tracking-wide text-navy uppercase">Lists</h1>
-        <div className="flex items-center gap-3">
-          <InstanceSelector />
-          {!DEMO_MODE && (
-            <Link
-              href="/lists/new"
-              className="px-4 py-2 bg-accent text-white hover:bg-accent-bright rounded-lg font-medium text-sm transition-colors"
-            >
-              Create List
-            </Link>
-          )}
-        </div>
+        {!DEMO_MODE && (
+          <Link
+            href="/lists/new"
+            className="px-4 py-2 bg-accent text-white hover:bg-accent-bright rounded-lg font-medium text-sm transition-colors"
+          >
+            Create List
+          </Link>
+        )}
       </div>
 
       {lists.length > 0 && (

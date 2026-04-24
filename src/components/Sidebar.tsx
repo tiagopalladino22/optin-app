@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/lib/DataProvider'
 import { useTheme } from '@/lib/ThemeProvider'
+import InstanceSelector from './InstanceSelector'
 
 type NavItem = {
   href: string
@@ -54,6 +55,15 @@ export default function Sidebar() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="https://assets.cdn.filesafe.space/uV5Ao6zz1HK4AbvPQ1Of/media/6997cfc908245e32ebddf688.png" alt="OPTIN" width={120} height={40} className="object-contain" />
       </div>
+
+      {userRole === 'admin' && (
+        <div className="px-3 pb-3">
+          <p className="px-2 mb-1 text-[10px] uppercase tracking-wider text-text-light font-medium">Instance</p>
+          <div className="[&>select]:w-full">
+            <InstanceSelector />
+          </div>
+        </div>
+      )}
 
       <nav className="flex-1 px-3 py-2 space-y-0.5">
         {navItems
