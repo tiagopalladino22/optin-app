@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useData } from '@/lib/DataProvider'
 
 export interface SegmentRule {
   id: string
@@ -74,6 +75,7 @@ function generateId() {
 }
 
 export default function SegmentRuleEditor({ rules, logic, onChange, onLogicChange, publicationCode }: Props) {
+  const { selectedInstanceId } = useData()
   const [lists, setLists] = useState<ListOption[]>([])
   const [listsLoading, setListsLoading] = useState(true)
   const [listSearch, setListSearch] = useState('')
@@ -81,11 +83,13 @@ export default function SegmentRuleEditor({ rules, logic, onChange, onLogicChang
 
   useEffect(() => {
     async function fetchLists() {
+      setListsLoading(true)
       try {
         const allLists: ListOption[] = []
         let page = 1
+        const instanceParam = selectedInstanceId ? `&instance=${selectedInstanceId}` : ''
         while (true) {
-          const res = await fetch(`/api/listmonk/lists?per_page=100&page=${page}`)
+          const res = await fetch(`/api/listmonk/lists?per_page=100&page=${page}${instanceParam}`)
           const data = await res.json()
           const results = data.data?.results || []
           for (const l of results) {
@@ -102,7 +106,7 @@ export default function SegmentRuleEditor({ rules, logic, onChange, onLogicChang
       }
     }
     fetchLists()
-  }, [])
+  }, [selectedInstanceId])
 
   const addRule = () => {
     onChange([...rules, { id: generateId(), field: '', operator: '', value: '' }])

@@ -26,15 +26,18 @@ export interface MatchResult {
 // ─── Subscriber Query Engine ────────────────────────────────────
 // Extracted from segment preview — used by both segments and automations
 
+type FetchFn = typeof listmonkFetch
+
 export async function getMatchingSubscribers(
   rules: SegmentRule[],
   logic: 'and' | 'or',
   options?: {
     allowedListIds?: number[]
     maxResults?: number
+    fetchFn?: FetchFn
   }
 ): Promise<MatchResult> {
-  const { allowedListIds = [], maxResults } = options || {}
+  const { allowedListIds = [], maxResults, fetchFn = listmonkFetch } = options || {}
 
   const queryParts = buildQuery(rules)
 
@@ -68,7 +71,7 @@ export async function getMatchingSubscribers(
     if (queryStr) {
       url += `&query=${encodeURIComponent(queryStr)}`
     }
-    const res = await listmonkFetch(url)
+    const res = await fetchFn(url)
     if (!res.ok) break
     const data = await res.json()
     const results: Subscriber[] = data.data?.results || []

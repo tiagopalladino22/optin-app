@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SegmentRuleEditor, { type SegmentRule } from '@/components/segments/SegmentRuleEditor'
+import { useData } from '@/lib/DataProvider'
 
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
 
@@ -30,6 +31,7 @@ interface SubscriberResult {
 export default function SegmentDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const { selectedInstanceId } = useData()
   const [segment, setSegment] = useState<Segment | null>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
@@ -95,6 +97,7 @@ export default function SegmentDetailPage() {
           rules: segment.rules,
           logic: segment.logic,
           returnAll: true,
+          instanceId: selectedInstanceId,
         }),
       })
       const data = await res.json()
@@ -278,6 +281,7 @@ export default function SegmentDetailPage() {
           rules: segment.rules,
           logic: segment.logic,
           exportAll: true,
+          instanceId: selectedInstanceId,
         }),
       })
       const data = await res.json()

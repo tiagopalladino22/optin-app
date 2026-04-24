@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SegmentRuleEditor, { type SegmentRule } from '@/components/segments/SegmentRuleEditor'
+import { useData } from '@/lib/DataProvider'
 
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
 
@@ -20,6 +21,7 @@ interface PreviewResult {
 
 export default function NewSegmentPage() {
   const router = useRouter()
+  const { selectedInstanceId } = useData()
   useEffect(() => {
     if (DEMO_MODE) router.replace('/segments')
   }, [router])
@@ -58,7 +60,7 @@ export default function NewSegmentPage() {
       const res = await fetch('/api/segments/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rules: validRules, logic }),
+        body: JSON.stringify({ rules: validRules, logic, instanceId: selectedInstanceId }),
       })
 
       const data = await res.json()

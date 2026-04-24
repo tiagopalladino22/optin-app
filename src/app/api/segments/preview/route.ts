@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { createServiceRoleClient } from '@/lib/supabase-server'
 import { getMatchingSubscribers, type SegmentRule } from '@/lib/automation-engine'
+import { listmonkFetch, createClientListmonkFetch } from '@/lib/listmonk'
 import { isDemoMode } from '@/lib/demo/config'
 
 // POST preview segment: returns matching subscriber count + sample rows
@@ -22,22 +23,45 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { rules, logic, returnAll, exportAll } = (await request.json()) as {
+  const { rules, logic, returnAll, exportAll, instanceId } = (await request.json()) as {
     rules: SegmentRule[]
     logic: 'and' | 'or'
     returnAll?: boolean
     exportAll?: boolean
+    instanceId?: string
   }
 
   if (!rules?.length) {
     return NextResponse.json({ error: 'At least one rule is required' }, { status: 400 })
   }
 
-  // Get the client's allowed list IDs for filtering
-  let allowedListIds: number[] = []
+  const supabase = await createServiceRoleClient()
 
-  if (session.role !== 'admin' && session.clientId) {
-    const supabase = await createServiceRoleClient()
+  // Resolve which Listmonk to query against:
+  //  • admin + instanceId → that client's Listmonk
+  //  • client user → their own client's Listmonk (if credentials set)
+  //  • otherwise → default
+  const targetClientId = session.role === 'admin' && instanceId ? instanceId : session.clientId
+  let fetchFn: typeof listmonkFetch = listmonkFetch
+  if (targetClientId) {
+    const { data: client } = await supabase
+      .from('clients')
+      .select('listmonk_url, listmonk_username, listmonk_password')
+      .eq('id', targetClientId)
+      .single()
+    if (client?.listmonk_url && client?.listmonk_username && client?.listmonk_password) {
+      fetchFn = createClientListmonkFetch({
+        url: client.listmonk_url,
+        username: client.listmonk_username,
+        password: client.listmonk_password,
+      })
+    }
+  }
+
+  // For client users on the default Listmonk, restrict to assigned lists.
+  // Clients with their own dedicated Listmonk own everything in that instance.
+  let allowedListIds: number[] = []
+  if (session.role !== 'admin' && session.clientId && fetchFn === listmonkFetch) {
     const { data: resources } = await supabase
       .from('client_resources')
       .select('listmonk_id')
@@ -58,6 +82,7 @@ export async function POST(request: NextRequest) {
     const { count, subscribers } = await getMatchingSubscribers(rules, logic, {
       allowedListIds,
       maxResults: limit,
+      fetchFn,
     })
     console.log('[Preview] Count:', count, 'Sample size:', subscribers.length)
 
