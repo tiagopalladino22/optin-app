@@ -281,10 +281,15 @@ async function handleProxy(
     return NextResponse.json({ error: 'No client associated' }, { status: 403 })
   }
 
-  // Filter response to client scope
+  // Client users on their own dedicated Listmonk own the whole instance —
+  // skip the per-list filter and return everything as-is.
+  if (customFetch) {
+    return NextResponse.json(data, { status })
+  }
+
+  // Default Listmonk: filter response to the client's assigned lists.
   const typedData = data as { data?: { results?: Record<string, unknown>[]; total?: number } }
   if (typedData.data?.results) {
-    // Get the client's assigned lists (only resource type we store)
     const listResources = await getClientResources(session.clientId, 'list')
     const allowedListIds = listResources.map((r) => r.listmonk_id)
 
