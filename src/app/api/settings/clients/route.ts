@@ -73,6 +73,7 @@ export async function POST(request: NextRequest) {
     wordpress_username,
     wordpress_password,
     apollo_api_key,
+    sender_domain,
     sourcing_window_day_open,
     sourcing_window_day_close,
     allowed_sections,
@@ -99,6 +100,7 @@ export async function POST(request: NextRequest) {
       wordpress_username: wordpress_username || null,
       wordpress_password: wordpress_password || null,
       apollo_api_key: apollo_api_key || null,
+      sender_domain: sender_domain ? sender_domain.trim().toLowerCase() : null,
       sourcing_window_day_open:
         sourcing_window_day_open === undefined || sourcing_window_day_open === null || sourcing_window_day_open === ''
           ? null
@@ -141,6 +143,7 @@ export async function PUT(request: NextRequest) {
     wordpress_username,
     wordpress_password,
     apollo_api_key,
+    sender_domain,
     sourcing_window_day_open,
     sourcing_window_day_close,
     allowed_sections,
@@ -161,6 +164,9 @@ export async function PUT(request: NextRequest) {
   if (wordpress_username !== undefined) updates.wordpress_username = wordpress_username || null
   if (wordpress_password !== undefined) updates.wordpress_password = wordpress_password || null
   if (apollo_api_key !== undefined) updates.apollo_api_key = apollo_api_key || null
+  if (sender_domain !== undefined) {
+    updates.sender_domain = sender_domain ? String(sender_domain).trim().toLowerCase() : null
+  }
   if (sourcing_window_day_open !== undefined) {
     updates.sourcing_window_day_open =
       sourcing_window_day_open === null || sourcing_window_day_open === '' ? null : Number(sourcing_window_day_open)

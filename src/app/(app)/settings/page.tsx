@@ -16,6 +16,7 @@ interface Client {
   wordpress_username?: string | null
   wordpress_password?: string | null
   apollo_api_key?: string | null
+  sender_domain?: string | null
   sourcing_window_day_open?: number | null
   sourcing_window_day_close?: number | null
   allowed_sections?: string[]
@@ -111,6 +112,7 @@ function ClientsTab() {
     wordpress_username: '',
     wordpress_password: '',
     apollo_api_key: '',
+    sender_domain: '',
     sourcing_window_day_open: '' as string,
     sourcing_window_day_close: '' as string,
     allowed_sections: ['dashboard', 'lists', 'campaigns', 'stats'] as string[],
@@ -158,6 +160,7 @@ function ClientsTab() {
       wordpress_username: client.wordpress_username || '',
       wordpress_password: '',
       apollo_api_key: '',
+      sender_domain: client.sender_domain || '',
       sourcing_window_day_open:
         client.sourcing_window_day_open == null ? '' : String(client.sourcing_window_day_open),
       sourcing_window_day_close:
@@ -181,6 +184,7 @@ function ClientsTab() {
       wordpress_username: '',
       wordpress_password: '',
       apollo_api_key: '',
+      sender_domain: '',
       sourcing_window_day_open: '',
       sourcing_window_day_close: '',
       allowed_sections: ['dashboard', 'lists', 'campaigns', 'stats'],
@@ -448,6 +452,26 @@ function ClientsTab() {
               <p className="text-xs text-text-light mt-2">
                 Leave blank to use the default Listmonk instance. Fill in to connect this client to their own Listmonk.
               </p>
+            </div>
+
+            <div className="border-t border-border-custom pt-4 mt-2">
+              <p className="text-xs text-text-light uppercase tracking-wider font-medium mb-3">Bounce Routing</p>
+              <div>
+                <label className="block text-sm font-medium text-text-mid mb-1">
+                  Sender Domain
+                </label>
+                <input
+                  type="text"
+                  value={form.sender_domain}
+                  onChange={(e) => setForm({ ...form, sender_domain: e.target.value })}
+                  className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                  placeholder="example.com"
+                />
+                <p className="text-xs text-text-light mt-2">
+                  Bounce webhooks from Hyvor are routed back to this client&rsquo;s Listmonk when the email&rsquo;s sender domain matches.
+                  Leave blank to route to the default Listmonk instance.
+                </p>
+              </div>
             </div>
 
             <div className="border-t border-border-custom pt-4 mt-2">

@@ -1,8 +1,57 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
+import { createServiceRoleClient } from '@/lib/supabase-server'
 
 // Translates Hyvor Relay bounce webhooks to Listmonk's /webhooks/bounce format.
 // This endpoint is intentionally public (no user auth) — called directly by Hyvor.
+//
+// Multi-tenant routing: when the bounce's from_address domain matches a client's
+// `sender_domain`, we forward to that client's Listmonk instance using the
+// credentials stored on the clients row. Otherwise we fall back to the default
+// Listmonk configured via env vars.
+
+function extractDomain(fromAddress: string): string | null {
+  // from_address can be `Name <user@domain.com>` or `user@domain.com`.
+  const match = fromAddress.match(/<([^>]+)>/) ?? [null, fromAddress.trim()]
+  const email = (match[1] ?? '').trim()
+  const at = email.lastIndexOf('@')
+  if (at < 0) return null
+  return email.slice(at + 1).trim().toLowerCase()
+}
+
+async function resolveListmonkTarget(fromAddress: string): Promise<{
+  url: string
+  username: string
+  password: string
+  source: 'client' | 'default'
+  clientName?: string
+} | null> {
+  const domain = extractDomain(fromAddress)
+  if (domain) {
+    const supabase = await createServiceRoleClient()
+    const { data: client } = await supabase
+      .from('clients')
+      .select('name, listmonk_url, listmonk_username, listmonk_password')
+      .ilike('sender_domain', domain)
+      .limit(1)
+      .maybeSingle()
+    if (client?.listmonk_url && client?.listmonk_username && client?.listmonk_password) {
+      return {
+        url: client.listmonk_url,
+        username: client.listmonk_username,
+        password: client.listmonk_password,
+        source: 'client',
+        clientName: client.name,
+      }
+    }
+  }
+
+  const url = process.env.LISTMONK_URL
+  const username = process.env.LISTMONK_USERNAME
+  const password = process.env.LISTMONK_PASSWORD
+  if (!url || !username || !password) return null
+  return { url, username, password, source: 'default' }
+}
 
 interface HyvorBouncePayload {
   event?: string
@@ -93,13 +142,9 @@ export async function POST(request: NextRequest) {
   const campaignUuid = headerLookup('X-Listmonk-Campaign')
   const subscriberUuid = headerLookup('X-Listmonk-Subscriber')
 
-  // Forward to Listmonk
-  const listmonkUrl = process.env.LISTMONK_URL
-  const listmonkUsername = process.env.LISTMONK_USERNAME
-  const listmonkPassword = process.env.LISTMONK_PASSWORD
-
-  if (!listmonkUrl || !listmonkUsername || !listmonkPassword) {
-    console.error('[hyvor-bounce] Missing Listmonk env vars (LISTMONK_URL, LISTMONK_USERNAME, LISTMONK_PASSWORD)')
+  const target = await resolveListmonkTarget(send?.from_address ?? '')
+  if (!target) {
+    console.error('[hyvor-bounce] No matching client for sender domain and no default Listmonk env vars set')
     return NextResponse.json({ ok: true })
   }
 
@@ -124,8 +169,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const credentials = Buffer.from(`${listmonkUsername}:${listmonkPassword}`).toString('base64')
-    const response = await fetch(`${listmonkUrl}/webhooks/bounce`, {
+    const credentials = Buffer.from(`${target.username}:${target.password}`).toString('base64')
+    const response = await fetch(`${target.url}/webhooks/bounce`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -136,7 +181,9 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const text = await response.text()
-      console.error(`[hyvor-bounce] Listmonk returned ${response.status}: ${text}`)
+      console.error(
+        `[hyvor-bounce] Listmonk (${target.source}${target.clientName ? `:${target.clientName}` : ''}) returned ${response.status}: ${text}`
+      )
     }
   } catch (err) {
     console.error('[hyvor-bounce] Failed to forward bounce to Listmonk:', err)
