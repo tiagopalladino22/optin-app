@@ -15,7 +15,8 @@
       "Bash(echo \"URL: $LISTMONK_URL\")",
       "Bash(echo \"User: $LISTMONK_USERNAME\")",
       "Bash(grep -r \"subscriber\" /Users/tiagopalladino/optin-app/src/app/api/listmonk/[...path]/route.ts)",
-      "Read(//Users/tiagopalladino/optin-platform/src/app/**)"
+      "Read(//Users/tiagopalladino/optin-platform/src/app/**)",
+      "Bash(/usr/bin/curl -s \"https://raw.githubusercontent.com/knadh/listmonk/master/cmd/bounce.go\")"
     ]
   }
 }

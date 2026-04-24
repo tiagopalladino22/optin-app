@@ -79,6 +79,20 @@ export async function POST(request: NextRequest) {
   const smtpMessage = attempt?.recipients?.[0]?.smtp_message ?? ''
   const bounceType = getBounceType(smtpCode)
 
+  // Listmonk stamps every outgoing campaign email with these custom headers.
+  // Hyvor forwards them in send.headers — extract so the bounce gets linked
+  // to the right campaign + subscriber.
+  const headers = send?.headers ?? {}
+  const headerLookup = (name: string): string | undefined => {
+    const lower = name.toLowerCase()
+    for (const key of Object.keys(headers)) {
+      if (key.toLowerCase() === lower) return headers[key]
+    }
+    return undefined
+  }
+  const campaignUuid = headerLookup('X-Listmonk-Campaign')
+  const subscriberUuid = headerLookup('X-Listmonk-Subscriber')
+
   // Forward to Listmonk
   const listmonkUrl = process.env.LISTMONK_URL
   const listmonkUsername = process.env.LISTMONK_USERNAME
@@ -89,9 +103,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  // Note: Listmonk does not include campaign UUID in SMTP headers,
-  // so bounces are recorded without campaign association.
-  const listmonkBody = {
+  const listmonkBody: Record<string, unknown> = {
     email,
     source: 'api',
     type: bounceType,
@@ -100,6 +112,15 @@ export async function POST(request: NextRequest) {
       smtp_message: smtpMessage,
       hyvor_send_uuid: send?.uuid,
     }),
+  }
+  if (campaignUuid) listmonkBody.campaign_uuid = campaignUuid
+  if (subscriberUuid) listmonkBody.subscriber_uuid = subscriberUuid
+
+  if (!campaignUuid) {
+    console.warn(
+      `[hyvor-bounce] No X-Listmonk-Campaign header found for ${email}. ` +
+      `Available headers: ${Object.keys(headers).join(', ')}`
+    )
   }
 
   try {
