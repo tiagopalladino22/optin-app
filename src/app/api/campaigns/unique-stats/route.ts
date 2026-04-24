@@ -43,15 +43,24 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ data })
   }
 
-  // Optional instance override
-  const instanceId = request.nextUrl.searchParams.get('instance')
+  // Resolve which Listmonk to query:
+  //  • admin + ?instance=X → that client's Listmonk
+  //  • client user → their own client's Listmonk (if credentials set)
+  //  • otherwise → default
+  const instanceParam = request.nextUrl.searchParams.get('instance')
+  const targetClientId = session.role === 'admin' && instanceParam
+    ? instanceParam
+    : session.role !== 'admin' && session.clientId
+      ? session.clientId
+      : null
+
   let fetchFn: FetchFn = listmonkFetch
-  if (instanceId && session.role === 'admin') {
+  if (targetClientId) {
     const svc = await createServiceRoleClient()
     const { data: client } = await svc
       .from('clients')
       .select('listmonk_url, listmonk_username, listmonk_password')
-      .eq('id', instanceId)
+      .eq('id', targetClientId)
       .single()
     if (client?.listmonk_url && client?.listmonk_username && client?.listmonk_password) {
       fetchFn = createClientListmonkFetch({
@@ -61,7 +70,7 @@ export async function GET(request: NextRequest) {
       })
     }
   }
-  const cacheKeyPrefix = instanceId || 'default'
+  const cacheKeyPrefix = targetClientId || 'default'
 
   const results: Record<number, { uniqueOpens: number; uniqueClicks: number; unsubs: number }> = {}
   const uncachedIds: number[] = []
