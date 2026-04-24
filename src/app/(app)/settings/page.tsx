@@ -17,6 +17,7 @@ interface Client {
   wordpress_password?: string | null
   apollo_api_key?: string | null
   sender_domain?: string | null
+  growth_client_id?: string | null
   sourcing_window_day_open?: number | null
   sourcing_window_day_close?: number | null
   allowed_sections?: string[]
@@ -113,6 +114,7 @@ function ClientsTab() {
     wordpress_password: '',
     apollo_api_key: '',
     sender_domain: '',
+    growth_client_id: '',
     sourcing_window_day_open: '' as string,
     sourcing_window_day_close: '' as string,
     allowed_sections: ['dashboard', 'lists', 'campaigns', 'stats'] as string[],
@@ -161,6 +163,7 @@ function ClientsTab() {
       wordpress_password: '',
       apollo_api_key: '',
       sender_domain: client.sender_domain || '',
+      growth_client_id: client.growth_client_id || '',
       sourcing_window_day_open:
         client.sourcing_window_day_open == null ? '' : String(client.sourcing_window_day_open),
       sourcing_window_day_close:
@@ -185,6 +188,7 @@ function ClientsTab() {
       wordpress_password: '',
       apollo_api_key: '',
       sender_domain: '',
+      growth_client_id: '',
       sourcing_window_day_open: '',
       sourcing_window_day_close: '',
       allowed_sections: ['dashboard', 'lists', 'campaigns', 'stats'],
@@ -470,6 +474,25 @@ function ClientsTab() {
                 <p className="text-xs text-text-light mt-2">
                   Bounce webhooks from Hyvor are routed back to this client&rsquo;s Listmonk when the email&rsquo;s sender domain matches.
                   Leave blank to route to the default Listmonk instance.
+                </p>
+              </div>
+            </div>
+
+            <div className="border-t border-border-custom pt-4 mt-2">
+              <p className="text-xs text-text-light uppercase tracking-wider font-medium mb-3">150growth</p>
+              <div>
+                <label className="block text-sm font-medium text-text-mid mb-1">
+                  Growth Client ID
+                </label>
+                <input
+                  type="text"
+                  value={form.growth_client_id}
+                  onChange={(e) => setForm({ ...form, growth_client_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                  placeholder="UUID from 150growth"
+                />
+                <p className="text-xs text-text-light mt-2">
+                  The 150growth client UUID. Used by the &ldquo;Push KPIs&rdquo; button on the campaigns view to know which 150growth client to push the data to.
                 </p>
               </div>
             </div>

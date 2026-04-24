@@ -113,7 +113,7 @@ export default function PushKPIsModal({
               <div className="skeleton h-10 w-full" />
             ) : clients.length === 0 ? (
               <p className="text-sm text-text-light border border-border-custom rounded-lg px-3 py-2.5">
-                No 150growth clients configured. Set up growth_client_id in Publications first.
+                No 150growth clients configured. Set the Growth Client ID on a client in Settings first.
               </p>
             ) : (
               <select
