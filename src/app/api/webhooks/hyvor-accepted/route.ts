@@ -78,18 +78,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, skipped: true })
   }
 
-  const { send } = payload.payload
-  const headers = send?.headers ?? {}
-  const campaignUuid = headerLookup(headers, 'X-Listmonk-Campaign')
-  const subscriberUuid = headerLookup(headers, 'X-Listmonk-Subscriber')
-
-  if (!campaignUuid || !subscriberUuid) {
-    console.warn(
-      `[hyvor-accepted] Missing Listmonk headers. ` +
-      `Available headers: ${Object.keys(headers).join(', ')}`
-    )
+  const { send, recipient } = payload.payload
+  if (!recipient?.address || !send?.uuid) {
     return NextResponse.json({ ok: true, skipped: true })
   }
+
+  // Listmonk headers are only present for some events (e.g. bounce). For
+  // accepted events Hyvor strips them, so we identify by email + send uuid.
+  const headers = send?.headers ?? {}
+  const campaignUuid = headerLookup(headers, 'X-Listmonk-Campaign') ?? null
+  const subscriberUuid = headerLookup(headers, 'X-Listmonk-Subscriber') ?? null
 
   // Resolve which client this send belongs to (by sender domain).
   const supabase = await createServiceRoleClient()
@@ -117,12 +115,13 @@ export async function POST(request: NextRequest) {
     .upsert(
       {
         client_id: clientId,
+        email: recipient.address.toLowerCase(),
         campaign_uuid: campaignUuid,
         subscriber_uuid: subscriberUuid,
         delivered_at: acceptedAt,
-        hyvor_send_uuid: send?.uuid,
+        hyvor_send_uuid: send.uuid,
       },
-      { onConflict: 'campaign_uuid,subscriber_uuid' }
+      { onConflict: 'hyvor_send_uuid' }
     )
 
   if (error) {
