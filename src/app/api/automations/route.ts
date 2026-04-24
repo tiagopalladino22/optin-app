@@ -13,7 +13,7 @@ export async function GET() {
 
   let query = supabase
     .from('automations')
-    .select('*, publications(code, name)')
+    .select('*, clients(name)')
     .order('created_at', { ascending: false })
 
   if (session.role !== 'admin' && session.clientId) {
@@ -26,10 +26,10 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Reshape to flatten publication join
+  // Flatten the clients join so the UI can show "Linked client: <name>".
   const shaped = data?.map((item: Record<string, unknown>) => {
-    const { publications, ...rest } = item
-    return { ...rest, publication: publications || null }
+    const { clients, ...rest } = item
+    return { ...rest, client: clients || null }
   })
 
   return NextResponse.json({ data: shaped })
@@ -42,11 +42,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const clientId = session.clientId
-  if (!clientId && session.role !== 'admin') {
-    return NextResponse.json({ error: 'No client associated' }, { status: 403 })
-  }
-
   const body = await request.json()
   const {
     name,
@@ -54,12 +49,21 @@ export async function POST(request: NextRequest) {
     schedule_day,
     schedule_hour,
     schedule_timezone,
-    publication_id,
+    client_id: bodyClientId,
     logic,
     actions,
     cohort_weeks,
     is_active,
   } = body
+
+  // Admins can target any client; client users always tag with their own.
+  const clientId = session.role === 'admin'
+    ? (bodyClientId || null)
+    : (session.clientId || null)
+
+  if (!clientId) {
+    return NextResponse.json({ error: 'A linked client is required' }, { status: 400 })
+  }
 
   if (!name || !rules?.length || schedule_day === undefined || schedule_hour === undefined || !schedule_timezone) {
     return NextResponse.json(
@@ -79,7 +83,6 @@ export async function POST(request: NextRequest) {
       schedule_day,
       schedule_hour,
       schedule_timezone,
-      publication_id: publication_id || null,
       logic: logic || 'and',
       actions: actions || [],
       cohort_weeks: cohort_weeks || null,
@@ -111,10 +114,12 @@ export async function PUT(request: NextRequest) {
 
   const supabase = await createServiceRoleClient()
 
-  const allowedFields = [
+  const baseFields = [
     'name', 'rules', 'schedule_day', 'schedule_hour', 'schedule_timezone',
-    'publication_id', 'logic', 'actions', 'cohort_weeks', 'is_active',
+    'logic', 'actions', 'cohort_weeks', 'is_active',
   ]
+  // Only admins can re-target an automation to a different client.
+  const allowedFields = session.role === 'admin' ? [...baseFields, 'client_id'] : baseFields
 
   const updates: Record<string, unknown> = {}
   for (const key of allowedFields) {

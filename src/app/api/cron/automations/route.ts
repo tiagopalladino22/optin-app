@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase-server'
 import { executeAutomation, isDue, type SegmentRule } from '@/lib/automation-engine'
+import { listmonkFetch, createClientListmonkFetch } from '@/lib/listmonk'
 
 // GET /api/cron/automations — triggered by Vercel Cron every hour
 export async function GET(request: NextRequest) {
@@ -14,10 +15,10 @@ export async function GET(request: NextRequest) {
   const now = new Date()
   const results: { id: string; name: string; status: string; error?: string }[] = []
 
-  // Fetch all active automations
+  // Fetch all active automations + their linked client (for instance + scope)
   const { data: automations, error } = await supabase
     .from('automations')
-    .select('*, publications(code, name)')
+    .select('*, clients(name, listmonk_url, listmonk_username, listmonk_password)')
     .eq('is_active', true)
 
   if (error) {
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
     const automationRecord = {
       id: automation.id as string,
       name: automation.name as string,
-      publication_id: automation.publication_id as string | null,
+      publication_id: (automation.publication_id as string | null) ?? null,
       rules: automation.rules as SegmentRule[],
       logic: automation.logic as 'and' | 'or',
       actions: automation.actions as string[],
@@ -41,6 +42,19 @@ export async function GET(request: NextRequest) {
       schedule_hour: automation.schedule_hour as number,
       schedule_timezone: automation.schedule_timezone as string,
     }
+
+    const linkedClient = automation.clients as
+      | { name: string; listmonk_url: string | null; listmonk_username: string | null; listmonk_password: string | null }
+      | null
+    const fetchFn =
+      linkedClient?.listmonk_url && linkedClient?.listmonk_username && linkedClient?.listmonk_password
+        ? createClientListmonkFetch({
+            url: linkedClient.listmonk_url,
+            username: linkedClient.listmonk_username,
+            password: linkedClient.listmonk_password,
+          })
+        : listmonkFetch
+    const scopeLabel = linkedClient?.name ?? ''
 
     if (!isDue(automationRecord, now)) {
       continue
@@ -78,10 +92,8 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      const pubCode = (automation.publications as { code: string } | null)?.code || ''
-
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const outcome = await executeAutomation(automationRecord, supabase as any, pubCode)
+      const outcome = await executeAutomation(automationRecord, supabase as any, { fetchFn, scopeLabel })
 
       await supabase
         .from('automation_runs')

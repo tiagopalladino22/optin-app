@@ -192,18 +192,16 @@ async function getRemainingSubscribers(fetchFn: FetchFn, listId: number): Promis
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function pushImportTracking(supabase: any, record: any, remainingSubs: number) {
-  if (!record.publication_code) return
+  if (!record.client_id) return
 
   try {
-    const { data: pub } = await supabase
-      .from('publications')
+    const { data: client } = await supabase
+      .from('clients')
       .select('growth_client_id')
-      .eq('code', record.publication_code)
-      .not('growth_client_id', 'is', null)
-      .limit(1)
+      .eq('id', record.client_id)
       .single()
 
-    if (!pub?.growth_client_id) return
+    if (!client?.growth_client_id) return
 
     const imported = record.imported_count || 0
     const sends = []
@@ -221,7 +219,7 @@ async function pushImportTracking(supabase: any, record: any, remainingSubs: num
 
     await pushToGrowth({
       type: 'import_tracking',
-      client_id: pub.growth_client_id,
+      client_id: client.growth_client_id,
       data: {
         name: record.list_name,
         import_date: record.import_date,
@@ -232,7 +230,7 @@ async function pushImportTracking(supabase: any, record: any, remainingSubs: num
         status: 'complete',
         sends,
       },
-    }, record.publication_code)
+    }, record.publication_code || record.list_name)
   } catch (err) {
     console.error('[ImportTracking] Failed to push to 150growth:', err)
   }

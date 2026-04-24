@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { createServiceRoleClient } from '@/lib/supabase-server'
 import { executeAutomation } from '@/lib/automation-engine'
+import { listmonkFetch, createClientListmonkFetch } from '@/lib/listmonk'
 
 // POST manually trigger an automation run (admin only)
 export async function POST(
@@ -36,15 +37,23 @@ export async function POST(
     return NextResponse.json({ error: 'Automation not found' }, { status: 404 })
   }
 
-  // Fetch publication code if publication_id is set
-  let publicationCode: string | null = null
-  if (automation.publication_id) {
-    const { data: pub } = await supabase
-      .from('publications')
-      .select('code')
-      .eq('id', automation.publication_id)
+  // Resolve linked client to get its Listmonk credentials + scope label
+  let fetchFn = listmonkFetch
+  let scopeLabel = ''
+  if (automation.client_id) {
+    const { data: client } = await supabase
+      .from('clients')
+      .select('name, listmonk_url, listmonk_username, listmonk_password')
+      .eq('id', automation.client_id)
       .single()
-    publicationCode = pub?.code || null
+    if (client?.listmonk_url && client?.listmonk_username && client?.listmonk_password) {
+      fetchFn = createClientListmonkFetch({
+        url: client.listmonk_url,
+        username: client.listmonk_username,
+        password: client.listmonk_password,
+      })
+    }
+    scopeLabel = client?.name ?? ''
   }
 
   // Create a run record with status 'running'
@@ -68,7 +77,7 @@ export async function POST(
       automation,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       supabase as any,
-      publicationCode || undefined
+      { fetchFn, scopeLabel }
     )
 
     // Update run with success

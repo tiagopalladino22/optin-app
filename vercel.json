@@ -7,10 +7,6 @@
     {
       "path": "/api/cron/import-tracking",
       "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/sync-growth",
-      "schedule": "0 7 * * *"
     }
   ]
 }

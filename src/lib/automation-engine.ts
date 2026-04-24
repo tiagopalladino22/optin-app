@@ -148,20 +148,20 @@ interface SupabaseClient {
   }
 }
 
-// Find all Listmonk lists whose name starts with a publication code
-export async function getListsByPublicationCode(code: string): Promise<{ id: number; name: string }[]> {
+// Fetch every list from a Listmonk instance.
+export async function getAllLists(
+  fetchFn: typeof listmonkFetch = listmonkFetch
+): Promise<{ id: number; name: string }[]> {
   const allLists: { id: number; name: string }[] = []
   let page = 1
   while (true) {
-    const res = await listmonkFetch(`lists?page=${page}&per_page=100`)
+    const res = await fetchFn(`lists?page=${page}&per_page=100`)
     if (!res.ok) break
     const data = await res.json()
     const results = data.data?.results || []
     if (results.length === 0) break
     for (const list of results) {
-      if (list.name.toUpperCase().startsWith(code.toUpperCase())) {
-        allLists.push({ id: list.id, name: list.name })
-      }
+      allLists.push({ id: list.id, name: list.name })
     }
     if (results.length < 100) break
     page++
@@ -172,21 +172,24 @@ export async function getListsByPublicationCode(code: string): Promise<{ id: num
 export async function executeAutomation(
   automation: AutomationRecord,
   supabase: SupabaseClient,
-  publicationCode?: string
+  options?: { fetchFn?: typeof listmonkFetch; scopeLabel?: string }
 ): Promise<{ processed: number; deleted: number; kept: number; csvData?: string }> {
+  const fetchFn = options?.fetchFn ?? listmonkFetch
+  const scopeLabel = options?.scopeLabel ?? ''
   let totalProcessed = 0
   let totalDeleted = 0
   let totalKept = 0
   let csvRows: string[] = []
 
-  // If "all lists" is selected or no specific lists in rules, auto-find lists by pub code
+  // If "all lists" is selected or no specific lists in rules, fetch every list
+  // in the linked client's Listmonk instance and process each one.
   const listRule = automation.rules.find((r) => r.field === 'from_lists')
   const isAllLists = listRule?.value === 'all'
   const hasSpecificLists = listRule && listRule.value && listRule.value !== 'all'
   let listsToProcess: { id: number; name: string }[] = []
 
-  if (publicationCode && (isAllLists || !hasSpecificLists)) {
-    listsToProcess = await getListsByPublicationCode(publicationCode)
+  if (isAllLists || !hasSpecificLists) {
+    listsToProcess = await getAllLists(fetchFn)
   }
 
   if (listsToProcess.length > 0) {
@@ -199,7 +202,7 @@ export async function executeAutomation(
 
       const result = await runActionsForRules(
         automation, rulesWithList, automation.logic, supabase,
-        publicationCode, list.name, list.id
+        { fetchFn, scopeLabel, listName: list.name, listId: list.id }
       )
 
       totalProcessed += result.processed
@@ -211,7 +214,7 @@ export async function executeAutomation(
     // Run against the rules as-is (specific lists already selected)
     const result = await runActionsForRules(
       automation, automation.rules, automation.logic, supabase,
-      publicationCode
+      { fetchFn, scopeLabel }
     )
     totalProcessed = result.processed
     totalDeleted = result.deleted
@@ -231,11 +234,19 @@ async function runActionsForRules(
   rules: SegmentRule[],
   logic: 'and' | 'or',
   supabase: SupabaseClient,
-  publicationCode?: string,
-  listName?: string,
-  listId?: number,
+  options?: {
+    fetchFn?: typeof listmonkFetch
+    scopeLabel?: string
+    listName?: string
+    listId?: number
+  }
 ): Promise<{ processed: number; deleted: number; kept: number; csvRows?: string[] }> {
-  const { count, subscribers } = await getMatchingSubscribers(rules, logic)
+  const fetchFn = options?.fetchFn ?? listmonkFetch
+  const scopeLabel = options?.scopeLabel ?? ''
+  const listName = options?.listName
+  const listId = options?.listId
+
+  const { count, subscribers } = await getMatchingSubscribers(rules, logic, { fetchFn })
 
   let deleted = 0
   const csvRows: string[] = []
@@ -262,7 +273,7 @@ async function runActionsForRules(
         ...rules,
         { field: 'campaigns_opened', operator: 'gte', value: '1' },
       ]
-      const openersResult = await getMatchingSubscribers(openerRules, 'and')
+      const openersResult = await getMatchingSubscribers(openerRules, 'and', { fetchFn })
       uniqueOpeners = openersResult.count
       nonOpeners = count - uniqueOpeners
     }
@@ -281,7 +292,7 @@ async function runActionsForRules(
         const batch = subscribers.slice(i, i + batchSize)
         const ids = batch.map((s) => s.id)
         try {
-          await listmonkFetch('subscribers/lists', {
+          await fetchFn('subscribers/lists', {
             method: 'PUT',
             body: JSON.stringify({
               ids,
@@ -297,7 +308,7 @@ async function runActionsForRules(
     } else {
       for (const sub of subscribers) {
         try {
-          await listmonkFetch(`subscribers/${sub.id}`, { method: 'DELETE' })
+          await fetchFn(`subscribers/${sub.id}`, { method: 'DELETE' })
           deleted++
         } catch {
           // Continue
@@ -308,11 +319,13 @@ async function runActionsForRules(
 
   const kept = count - deleted
 
-  // 4. Store snapshot LAST — with final kept/deleted counts
+  // 4. Store snapshot LAST — with final kept/deleted counts.
+  // The legacy `publication_code` column on automation_snapshots is reused
+  // here as a free-text scope label (typically the linked client's name).
   if (automation.actions.includes('store_data') || automation.actions.includes('store_count')) {
     await supabase.from('automation_snapshots').insert({
       automation_id: automation.id,
-      publication_code: publicationCode || '',
+      publication_code: scopeLabel,
       list_name: listName || null,
       list_id: listId || null,
       snapshot_date: new Date().toISOString().slice(0, 10),

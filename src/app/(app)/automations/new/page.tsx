@@ -1,16 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SegmentRuleEditor, { type SegmentRule } from '@/components/segments/SegmentRuleEditor'
 import { useData } from '@/lib/DataProvider'
-
-interface Publication {
-  id: string
-  code: string
-  name: string
-}
 
 interface PreviewResult {
   count: number
@@ -59,11 +53,9 @@ const ACTION_OPTIONS = [
 
 export default function NewAutomationPage() {
   const router = useRouter()
-  const { lists: allLists } = useData()
+  const { lists: allLists, instances, selectedInstanceId } = useData()
   const [name, setName] = useState('')
-  const [publicationId, setPublicationId] = useState('')
-  const [publications, setPublications] = useState<Publication[]>([])
-  const [pubsLoading, setPubsLoading] = useState(true)
+  const [clientId, setClientId] = useState(selectedInstanceId || '')
 
   const [rules, setRules] = useState<SegmentRule[]>([
     { id: '1', field: '', operator: '', value: '' },
@@ -84,21 +76,6 @@ export default function NewAutomationPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function fetchPubs() {
-      try {
-        const res = await fetch('/api/publications')
-        const data = await res.json()
-        setPublications(data.data || [])
-      } catch {
-        // ignore
-      } finally {
-        setPubsLoading(false)
-      }
-    }
-    fetchPubs()
-  }, [])
-
   const validRules = rules.filter((r) => {
     if (!r.field) return false
     if (r.field === 'from_lists') return !!r.value
@@ -118,13 +95,13 @@ export default function NewAutomationPage() {
     setError(null)
     setPreview(null)
     try {
-      // Resolve "all" lists to actual IDs based on publication code
-      const pubCode = publications.find((p) => p.id === publicationId)?.code?.toUpperCase()
+      // "all lists" now means every list in the linked client's instance.
+      // The client picker drives DataProvider's selectedInstanceId, which the
+      // SegmentRuleEditor + segments preview already use to fetch the right
+      // list set, so we just expand "all" to every list visible.
       const resolvedRules = validRules.map((r) => {
-        if (r.field === 'from_lists' && r.value === 'all' && pubCode) {
-          const matchingIds = allLists
-            .filter((l) => l.name.toUpperCase().startsWith(pubCode))
-            .map((l) => l.id)
+        if (r.field === 'from_lists' && r.value === 'all') {
+          const matchingIds = allLists.map((l) => l.id)
           return { ...r, value: matchingIds.join(','), operator: 'in' }
         }
         return r
@@ -133,7 +110,7 @@ export default function NewAutomationPage() {
       const res = await fetch('/api/segments/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rules: resolvedRules, logic }),
+        body: JSON.stringify({ rules: resolvedRules, logic, instanceId: clientId || null }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Preview failed')
@@ -154,7 +131,7 @@ export default function NewAutomationPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: name.trim(),
-          publication_id: publicationId || null,
+          client_id: clientId || null,
           rules: validRules,
           logic,
           schedule_day: scheduleDay,
@@ -203,23 +180,22 @@ export default function NewAutomationPage() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-text-mid mb-1">Publication</label>
-          {pubsLoading ? (
-            <div className="skeleton h-9 w-full" />
-          ) : (
-            <select
-              value={publicationId}
-              onChange={(e) => setPublicationId(e.target.value)}
-              className="block w-full border border-border-custom rounded-lg px-3 py-2 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-            >
-              <option value="">— Select publication (optional) —</option>
-              {publications.map((pub) => (
-                <option key={pub.id} value={pub.id}>
-                  [{pub.code}] {pub.name}
-                </option>
-              ))}
-            </select>
-          )}
+          <label className="block text-sm font-medium text-text-mid mb-1">Client</label>
+          <select
+            value={clientId}
+            onChange={(e) => setClientId(e.target.value)}
+            className="block w-full border border-border-custom rounded-lg px-3 py-2 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+          >
+            <option value="">— Select client —</option>
+            {instances.map((inst) => (
+              <option key={inst.id} value={inst.id}>
+                {inst.name}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-text-light mt-1">
+            The automation runs against this client&rsquo;s Listmonk instance.
+          </p>
         </div>
       </div>
 
@@ -231,7 +207,6 @@ export default function NewAutomationPage() {
           logic={logic}
           onChange={setRules}
           onLogicChange={setLogic}
-          publicationCode={publications.find((p) => p.id === publicationId)?.code}
         />
         <button
           onClick={handlePreview}

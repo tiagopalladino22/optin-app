@@ -6,9 +6,8 @@ import Link from 'next/link'
 import SegmentRuleEditor, { type SegmentRule } from '@/components/segments/SegmentRuleEditor'
 import { useData } from '@/lib/DataProvider'
 
-interface Publication {
+interface LinkedClient {
   id: string
-  code: string
   name: string
 }
 
@@ -39,8 +38,8 @@ interface AutomationSnapshot {
 interface Automation {
   id: string
   name: string
-  publication_id: string | null
-  publication: Publication | null
+  client_id: string | null
+  client: LinkedClient | null
   schedule_day: number
   schedule_hour: number
   schedule_timezone: string
@@ -137,7 +136,7 @@ function statusBadgeClass(status: string) {
 export default function AutomationDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { lists: allLists } = useData()
+  const { lists: allLists, instances } = useData()
   const [automation, setAutomation] = useState<Automation | null>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
@@ -148,7 +147,7 @@ export default function AutomationDetailPage() {
 
   // Edit form state
   const [editName, setEditName] = useState('')
-  const [editPublicationId, setEditPublicationId] = useState('')
+  const [editClientId, setEditClientId] = useState('')
   const [editRules, setEditRules] = useState<SegmentRule[]>([])
   const [editLogic, setEditLogic] = useState<'and' | 'or'>('and')
   const [editScheduleDay, setEditScheduleDay] = useState(0)
@@ -158,9 +157,6 @@ export default function AutomationDetailPage() {
   const [editCohortEnabled, setEditCohortEnabled] = useState(false)
   const [editCohortWeeks, setEditCohortWeeks] = useState(4)
 
-  // Publications for edit form
-  const [publications, setPublications] = useState<Publication[]>([])
-  const [pubsLoading, setPubsLoading] = useState(false)
 
   // Preview in edit mode
   const [preview, setPreview] = useState<PreviewResult | null>(null)
@@ -182,7 +178,7 @@ export default function AutomationDetailPage() {
 
   function populateEditForm(auto: Automation) {
     setEditName(auto.name)
-    setEditPublicationId(auto.publication_id || '')
+    setEditClientId(auto.client_id || '')
     setEditRules(auto.rules || [])
     setEditLogic(auto.logic || 'and')
     setEditScheduleDay(auto.schedule_day)
@@ -199,12 +195,6 @@ export default function AutomationDetailPage() {
 
   function startEditing() {
     setEditing(true)
-    setPubsLoading(true)
-    fetch('/api/publications')
-      .then((res) => res.json())
-      .then((data) => setPublications(data.data || []))
-      .catch(() => {})
-      .finally(() => setPubsLoading(false))
   }
 
   function cancelEditing() {
@@ -230,13 +220,10 @@ export default function AutomationDetailPage() {
     setError(null)
     setPreview(null)
     try {
-      // Resolve "all" lists to actual IDs based on publication code
-      const pubCode = (publications.find((p) => p.id === editPublicationId)?.code || automation?.publication?.code)?.toUpperCase()
+      // "all lists" → every list in the linked client's instance
       const resolvedRules = editValidRules.map((r) => {
-        if (r.field === 'from_lists' && r.value === 'all' && pubCode) {
-          const matchingIds = allLists
-            .filter((l) => l.name.toUpperCase().startsWith(pubCode))
-            .map((l) => l.id)
+        if (r.field === 'from_lists' && r.value === 'all') {
+          const matchingIds = allLists.map((l) => l.id)
           return { ...r, value: matchingIds.join(','), operator: 'in' }
         }
         return r
@@ -245,7 +232,7 @@ export default function AutomationDetailPage() {
       const res = await fetch('/api/segments/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rules: resolvedRules, logic: editLogic }),
+        body: JSON.stringify({ rules: resolvedRules, logic: editLogic, instanceId: editClientId || null }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Preview failed')
@@ -268,7 +255,7 @@ export default function AutomationDetailPage() {
         body: JSON.stringify({
           id: params.id,
           name: editName.trim(),
-          publication_id: editPublicationId || null,
+          client_id: editClientId || null,
           rules: editValidRules,
           logic: editLogic,
           schedule_day: editScheduleDay,
@@ -409,23 +396,19 @@ export default function AutomationDetailPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-text-mid mb-1">Publication</label>
-              {pubsLoading ? (
-                <div className="skeleton h-9 w-full" />
-              ) : (
-                <select
-                  value={editPublicationId}
-                  onChange={(e) => setEditPublicationId(e.target.value)}
-                  className="block w-full border border-border-custom rounded-lg px-3 py-2 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-                >
-                  <option value="">— Select publication (optional) —</option>
-                  {publications.map((pub) => (
-                    <option key={pub.id} value={pub.id}>
-                      [{pub.code}] {pub.name}
-                    </option>
-                  ))}
-                </select>
-              )}
+              <label className="block text-sm font-medium text-text-mid mb-1">Client</label>
+              <select
+                value={editClientId}
+                onChange={(e) => setEditClientId(e.target.value)}
+                className="block w-full border border-border-custom rounded-lg px-3 py-2 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+              >
+                <option value="">— Select client —</option>
+                {instances.map((inst) => (
+                  <option key={inst.id} value={inst.id}>
+                    {inst.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -437,7 +420,6 @@ export default function AutomationDetailPage() {
               logic={editLogic}
               onChange={setEditRules}
               onLogicChange={setEditLogic}
-              publicationCode={publications.find((p) => p.id === editPublicationId)?.code || automation?.publication?.code}
             />
             <button
               onClick={handlePreview}
@@ -656,13 +638,9 @@ export default function AutomationDetailPage() {
           {/* Info Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="bg-surface rounded-xl border border-border-custom p-4">
-              <p className="text-xs text-text-light uppercase tracking-wider mb-1">Publication</p>
-              <p className="font-display text-3xl text-navy">
-                {automation.publication ? (
-                  <span className="inline-block px-2 py-0.5 rounded-lg text-sm font-medium bg-offwhite text-text-mid">
-                    {automation.publication.code}
-                  </span>
-                ) : '—'}
+              <p className="text-xs text-text-light uppercase tracking-wider mb-1">Client</p>
+              <p className="text-sm font-medium text-navy mt-1">
+                {automation.client?.name ?? '—'}
               </p>
             </div>
             <div className="bg-surface rounded-xl border border-border-custom p-4">

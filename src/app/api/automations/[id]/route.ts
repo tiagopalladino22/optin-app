@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { createServiceRoleClient } from '@/lib/supabase-server'
 
-// GET single automation by ID with publication, runs, and snapshots
+// GET single automation by ID with linked client, runs, and snapshots
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -31,15 +31,15 @@ export async function GET(
     return NextResponse.json({ error: 'Automation not found' }, { status: 404 })
   }
 
-  // Fetch publication info if publication_id is set
-  let publication = null
-  if (automation.publication_id) {
-    const { data: pub } = await supabase
-      .from('publications')
-      .select('code, name')
-      .eq('id', automation.publication_id)
+  // Fetch linked client info if client_id is set
+  let client = null
+  if (automation.client_id) {
+    const { data: c } = await supabase
+      .from('clients')
+      .select('id, name')
+      .eq('id', automation.client_id)
       .single()
-    publication = pub || null
+    client = c || null
   }
 
   // Fetch 10 most recent runs
@@ -68,7 +68,7 @@ export async function GET(
   return NextResponse.json({
     data: {
       ...automation,
-      publication,
+      client,
       runs: runs || [],
       snapshots: snapshots || [],
     },

@@ -3,16 +3,15 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 
-interface Publication {
-  code: string
+interface LinkedClient {
   name: string
 }
 
 interface Automation {
   id: string
   name: string
-  publication_id: string | null
-  publication: Publication | null
+  client_id: string | null
+  client: LinkedClient | null
   schedule_day: number
   schedule_hour: number
   schedule_timezone: string
@@ -126,7 +125,7 @@ export default function AutomationsPage() {
             <thead>
               <tr className="border-b border-border-custom bg-offwhite">
                 <th className="text-left px-4 py-3 text-text-light uppercase text-xs tracking-wider font-medium">Name</th>
-                <th className="text-left px-4 py-3 text-text-light uppercase text-xs tracking-wider font-medium">Publication</th>
+                <th className="text-left px-4 py-3 text-text-light uppercase text-xs tracking-wider font-medium">Client</th>
                 <th className="text-left px-4 py-3 text-text-light uppercase text-xs tracking-wider font-medium">Schedule</th>
                 <th className="text-left px-4 py-3 text-text-light uppercase text-xs tracking-wider font-medium">Actions</th>
                 <th className="text-left px-4 py-3 text-text-light uppercase text-xs tracking-wider font-medium">Status</th>
@@ -141,14 +140,8 @@ export default function AutomationsPage() {
                       {auto.name}
                     </Link>
                   </td>
-                  <td className="px-4 py-3">
-                    {auto.publication ? (
-                      <span className="inline-block px-2 py-0.5 rounded-lg text-xs font-medium bg-offwhite text-text-mid">
-                        {auto.publication.code}
-                      </span>
-                    ) : (
-                      <span className="text-text-light">—</span>
-                    )}
+                  <td className="px-4 py-3 text-text-mid">
+                    {auto.client?.name ?? <span className="text-text-light">—</span>}
                   </td>
                   <td className="px-4 py-3 text-text-mid">
                     {formatSchedule(auto.schedule_day, auto.schedule_hour, auto.schedule_timezone)}
