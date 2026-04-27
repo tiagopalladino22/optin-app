@@ -11,6 +11,7 @@ const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
 
 interface CampaignDetail {
   id: number
+  uuid: string
   name: string
   subject: string
   from_email: string
@@ -24,6 +25,14 @@ interface CampaignDetail {
   lists: { id: number; name: string }[]
   created_at: string
   started_at: string | null
+}
+
+interface ClickFilter {
+  threshold_seconds: number
+  total: number
+  bot: number
+  human: number
+  unmatched: number
 }
 
 interface UniqueStats {
@@ -49,6 +58,7 @@ export default function CampaignDetailPage() {
   const [showTestModal, setShowTestModal] = useState(false)
   const [topLinks, setTopLinks] = useState<{ url: string; count: number }[]>([])
   const [linksLoading, setLinksLoading] = useState(false)
+  const [clickFilter, setClickFilter] = useState<ClickFilter | null>(null)
   const { userRole } = useData()
 
   // Queue navigation
@@ -132,6 +142,19 @@ export default function CampaignDetailPage() {
           // Link stats are optional
         } finally {
           setLinksLoading(false)
+        }
+
+        // Fetch click filter (bot detection) — needs the campaign UUID, not the numeric id
+        if (data.data?.uuid) {
+          try {
+            const filterRes = await fetch(`/api/campaigns/${data.data.uuid}/click-filter`)
+            if (filterRes.ok) {
+              const filterData = await filterRes.json()
+              setClickFilter(filterData)
+            }
+          } catch {
+            // Optional — feature degrades gracefully
+          }
         }
       }
     } catch (err) {
@@ -388,6 +411,45 @@ export default function CampaignDetailPage() {
           </div>
         </dl>
       </div>
+
+      {/* Filtered Clicks (bot detection) */}
+      {clickFilter && clickFilter.total > 0 && (
+        <div className="bg-surface rounded-xl border border-border-custom overflow-hidden">
+          <div className="px-5 py-4 border-b border-border-custom flex items-center justify-between">
+            <h2 className="text-sm font-medium text-text-mid uppercase tracking-wider">
+              Filtered Clicks
+            </h2>
+            <span className="text-xs text-text-light">
+              Threshold: {clickFilter.threshold_seconds}s after delivery
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border-custom">
+            <div className="bg-surface px-5 py-4">
+              <div className="text-xs text-text-light uppercase tracking-wider">Tracked clicks</div>
+              <div className="font-display text-3xl text-navy mt-1">{clickFilter.total.toLocaleString()}</div>
+            </div>
+            <div className="bg-surface px-5 py-4">
+              <div className="text-xs text-text-light uppercase tracking-wider">Likely human</div>
+              <div className="font-display text-3xl text-emerald-600 mt-1">{clickFilter.human.toLocaleString()}</div>
+              <div className="text-xs text-text-light mt-0.5">
+                {clickFilter.total > 0 ? `${((clickFilter.human / clickFilter.total) * 100).toFixed(1)}%` : '—'}
+              </div>
+            </div>
+            <div className="bg-surface px-5 py-4">
+              <div className="text-xs text-text-light uppercase tracking-wider">Likely bot</div>
+              <div className="font-display text-3xl text-amber-600 mt-1">{clickFilter.bot.toLocaleString()}</div>
+              <div className="text-xs text-text-light mt-0.5">
+                {clickFilter.total > 0 ? `${((clickFilter.bot / clickFilter.total) * 100).toFixed(1)}%` : '—'}
+              </div>
+            </div>
+            <div className="bg-surface px-5 py-4">
+              <div className="text-xs text-text-light uppercase tracking-wider">Unmatched</div>
+              <div className="font-display text-3xl text-text-light mt-1">{clickFilter.unmatched.toLocaleString()}</div>
+              <div className="text-xs text-text-light mt-0.5">no delivery record</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Most Clicked Links */}
       {(linksLoading || topLinks.length > 0) && (
