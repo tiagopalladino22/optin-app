@@ -2,6 +2,7 @@
 -- compute time-since-delivery per click. Used for bot detection: clicks under
 -- a few seconds after delivery are almost always email security scanners
 -- (Microsoft Defender, Proofpoint, Mimecast, etc.) pre-clicking links.
+-- Surfaced via the "Filtered Clicks" panel on the campaign detail page.
 
 create or replace view email_clicks_with_delivery as
 select
