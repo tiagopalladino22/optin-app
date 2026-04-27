@@ -248,12 +248,47 @@ If the latest sync timestamp is within the last few minutes → cron is healthy.
 
 ---
 
+---
+
+## Hyvor webhook setup (per Hyvor project)
+
+Each client's Hyvor project needs to point its webhooks at OPTIN. This is independent of the click sync above and powers delivery / bounce / complaint tracking.
+
+### Steps
+
+1. **Find this client's OPTIN client ID** — same UUID as in the click sync prerequisites.
+
+2. **In the client's Hyvor project**, go to **Webhooks → Create webhook** with:
+   - **URL**: `https://app.tryoptin.com/api/webhooks/hyvor-bounce/<OPTIN_CLIENT_ID>`
+   - **Events**: tick all three:
+     - `send.recipient.accepted`
+     - `send.recipient.bounced`
+     - `send.recipient.complained`
+   - **Save** — Hyvor generates a webhook secret. Copy it immediately.
+
+3. **In OPTIN → Settings → Clients → this client → Edit**:
+   - Paste the secret into **Hyvor Webhook Secret**
+   - Save
+
+4. **Verify**:
+   - Send any test campaign through this client's Listmonk
+   - Within seconds, check Vercel logs for `hyvor-bounce/<clientId>` — should see `POST 200`
+   - Check Supabase: `select count(*) from email_deliveries where client_id = '<id>' and delivered_at > now() - interval '5 minutes'` — count should grow
+
+### Common gotchas
+
+- **`401 Webhook secret not configured for client`** → no `hyvor_webhook_secret` saved in OPTIN for this client. Re-paste in Settings.
+- **`401 Invalid signature`** → secret in OPTIN doesn't match the one in Hyvor. Re-copy from Hyvor and re-paste.
+- **`404 Unknown clientId`** → URL has the wrong UUID. Verify the client ID in Hyvor's webhook URL matches the OPTIN client.
+
+---
+
 ## Per-client checklist
 
 Track which clients are set up:
 
-| Client | OPTIN client ID | Server | Set up | Cron active | Backlog drained |
-|--------|-----------------|--------|--------|-------------|-----------------|
-| (name) | (uuid)          | (host) | ☐      | ☐           | ☐               |
+| Client | OPTIN client ID | Server | Click sync | Cron active | Hyvor webhook | Hyvor secret saved |
+|--------|-----------------|--------|------------|-------------|---------------|---------------------|
+| (name) | (uuid)          | (host) | ☐          | ☐           | ☐             | ☐                   |
 
-Add a row per client. Once all rows have all three checkboxes, you're done.
+Add a row per client. Once all rows have all checkboxes, you're done.

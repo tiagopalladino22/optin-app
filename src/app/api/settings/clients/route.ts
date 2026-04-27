@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
     apollo_api_key,
     sender_domain,
     growth_client_id,
+    hyvor_webhook_secret,
     sourcing_window_day_open,
     sourcing_window_day_close,
     allowed_sections,
@@ -103,6 +104,7 @@ export async function POST(request: NextRequest) {
       apollo_api_key: apollo_api_key || null,
       sender_domain: sender_domain ? sender_domain.trim().toLowerCase() : null,
       growth_client_id: growth_client_id ? String(growth_client_id).trim() : null,
+      hyvor_webhook_secret: hyvor_webhook_secret || null,
       sourcing_window_day_open:
         sourcing_window_day_open === undefined || sourcing_window_day_open === null || sourcing_window_day_open === ''
           ? null
@@ -147,6 +149,7 @@ export async function PUT(request: NextRequest) {
     apollo_api_key,
     sender_domain,
     growth_client_id,
+    hyvor_webhook_secret,
     sourcing_window_day_open,
     sourcing_window_day_close,
     allowed_sections,
@@ -172,6 +175,9 @@ export async function PUT(request: NextRequest) {
   }
   if (growth_client_id !== undefined) {
     updates.growth_client_id = growth_client_id ? String(growth_client_id).trim() : null
+  }
+  if (hyvor_webhook_secret !== undefined) {
+    updates.hyvor_webhook_secret = hyvor_webhook_secret || null
   }
   if (sourcing_window_day_open !== undefined) {
     updates.sourcing_window_day_open =

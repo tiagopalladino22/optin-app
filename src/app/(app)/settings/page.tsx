@@ -18,6 +18,7 @@ interface Client {
   apollo_api_key?: string | null
   sender_domain?: string | null
   growth_client_id?: string | null
+  hyvor_webhook_secret?: string | null
   sourcing_window_day_open?: number | null
   sourcing_window_day_close?: number | null
   allowed_sections?: string[]
@@ -115,6 +116,7 @@ function ClientsTab() {
     apollo_api_key: '',
     sender_domain: '',
     growth_client_id: '',
+    hyvor_webhook_secret: '',
     sourcing_window_day_open: '' as string,
     sourcing_window_day_close: '' as string,
     allowed_sections: ['dashboard', 'lists', 'campaigns', 'stats'] as string[],
@@ -164,6 +166,7 @@ function ClientsTab() {
       apollo_api_key: '',
       sender_domain: client.sender_domain || '',
       growth_client_id: client.growth_client_id || '',
+      hyvor_webhook_secret: '',
       sourcing_window_day_open:
         client.sourcing_window_day_open == null ? '' : String(client.sourcing_window_day_open),
       sourcing_window_day_close:
@@ -189,6 +192,7 @@ function ClientsTab() {
       apollo_api_key: '',
       sender_domain: '',
       growth_client_id: '',
+      hyvor_webhook_secret: '',
       sourcing_window_day_open: '',
       sourcing_window_day_close: '',
       allowed_sections: ['dashboard', 'lists', 'campaigns', 'stats'],
@@ -209,6 +213,7 @@ function ClientsTab() {
         // Don't overwrite existing secrets with blank values
         if (!payload.wordpress_password) delete payload.wordpress_password
         if (!payload.apollo_api_key) delete payload.apollo_api_key
+        if (!payload.hyvor_webhook_secret) delete payload.hyvor_webhook_secret
         const res = await fetch('/api/settings/clients', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -474,6 +479,27 @@ function ClientsTab() {
                 <p className="text-xs text-text-light mt-2">
                   Bounce webhooks from Hyvor are routed back to this client&rsquo;s Listmonk when the email&rsquo;s sender domain matches.
                   Leave blank to route to the default Listmonk instance.
+                </p>
+              </div>
+            </div>
+
+            <div className="border-t border-border-custom pt-4 mt-2">
+              <p className="text-xs text-text-light uppercase tracking-wider font-medium mb-3">Hyvor Webhook</p>
+              <div>
+                <label className="block text-sm font-medium text-text-mid mb-1">
+                  Hyvor Webhook Secret
+                </label>
+                <input
+                  type="password"
+                  value={form.hyvor_webhook_secret}
+                  onChange={(e) => setForm({ ...form, hyvor_webhook_secret: e.target.value })}
+                  className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                  placeholder="••••••••"
+                />
+                <p className="text-xs text-text-light mt-2">
+                  The webhook secret from this client&rsquo;s Hyvor project. Configure Hyvor to POST all events
+                  (accepted, bounced, complained) to <code className="bg-offwhite px-1 py-0.5 rounded">/api/webhooks/hyvor-bounce/{editingId || '<client-id>'}</code>.
+                  Leave blank to keep the existing value.
                 </p>
               </div>
             </div>
