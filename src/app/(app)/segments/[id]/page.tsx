@@ -290,14 +290,31 @@ export default function SegmentDetailPage() {
 
       if (allSubs.length === 0) return
 
-      const headers = ['Email', 'Name', 'Lists', 'Attributes']
-      const rows = allSubs.map((s) => [
-        `"${s.email}"`,
-        `"${(s.name || '').replace(/"/g, '""')}"`,
-        `"${s.lists?.map((l) => l.name).join('; ') || ''}"`,
-        `"${JSON.stringify(s.attribs || {}).replace(/"/g, '""')}"`,
-      ].join(','))
-      const csv = [headers.join(','), ...rows].join('\n')
+      // Collect every attribute key seen across the segment so each becomes its
+      // own column (instead of dumping the JSON blob into one column).
+      const attribKeys = Array.from(
+        allSubs.reduce((set, s) => {
+          for (const k of Object.keys(s.attribs || {})) set.add(k)
+          return set
+        }, new Set<string>())
+      ).sort()
+
+      const csvCell = (val: unknown): string => {
+        if (val === null || val === undefined) return '""'
+        const str = typeof val === 'string' ? val : JSON.stringify(val)
+        return `"${str.replace(/"/g, '""')}"`
+      }
+
+      const headers = ['Email', 'Name', 'Lists', ...attribKeys]
+      const rows = allSubs.map((s) =>
+        [
+          csvCell(s.email),
+          csvCell(s.name || ''),
+          csvCell(s.lists?.map((l) => l.name).join('; ') || ''),
+          ...attribKeys.map((k) => csvCell((s.attribs || {})[k])),
+        ].join(',')
+      )
+      const csv = [headers.map((h) => csvCell(h)).join(','), ...rows].join('\n')
       const blob = new Blob([csv], { type: 'text/csv' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
