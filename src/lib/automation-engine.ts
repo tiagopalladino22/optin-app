@@ -35,9 +35,13 @@ export async function getMatchingSubscribers(
     allowedListIds?: number[]
     maxResults?: number
     fetchFn?: FetchFn
+    // Pagination — when set, returns only that page worth of subscribers
+    // (still combining N internal Listmonk pages of 100 to fill the chunk).
+    pageOffset?: number   // 0-indexed offset of subscribers
+    pageSize?: number     // how many subscribers to return for this call
   }
 ): Promise<MatchResult> {
-  const { allowedListIds = [], maxResults, fetchFn = listmonkFetch } = options || {}
+  const { allowedListIds = [], maxResults, fetchFn = listmonkFetch, pageOffset, pageSize } = options || {}
 
   const queryParts = buildQuery(rules)
 
@@ -64,7 +68,13 @@ export async function getMatchingSubscribers(
 
   let allSubscribers: Subscriber[] = []
   let serverTotal: number | null = null
-  let page = 1
+
+  // If pagination requested, compute which Listmonk pages cover the requested
+  // window. Listmonk uses 100/page; we collect the relevant pages then slice.
+  const isPaginatedCall = pageOffset !== undefined && pageSize !== undefined
+  const startPage = isPaginatedCall ? Math.floor(pageOffset! / 100) + 1 : 1
+  const endTarget = isPaginatedCall ? pageOffset! + pageSize! : Infinity
+  let page = startPage
 
   while (true) {
     let url = `subscribers?page=${page}&per_page=100`
@@ -75,16 +85,26 @@ export async function getMatchingSubscribers(
     if (!res.ok) break
     const data = await res.json()
     const results: Subscriber[] = data.data?.results || []
-    // Capture the server-reported total on first page
-    if (page === 1 && data.data?.total !== undefined) {
+    if (data.data?.total !== undefined && serverTotal === null) {
       serverTotal = data.data.total
     }
     if (results.length === 0) break
     allSubscribers.push(...results)
-    // If we only need a sample, stop early (serverTotal has the real count)
     if (maxResults && allSubscribers.length >= maxResults) break
     if (results.length < 100) break
+    if (isPaginatedCall) {
+      // Stop once we've collected enough Listmonk pages to fully cover the
+      // requested window (need a bit extra because the offset may start mid-page).
+      const collectedAbsolute = (page - startPage + 1) * 100 + (startPage - 1) * 100
+      if (collectedAbsolute >= endTarget) break
+    }
     page++
+  }
+
+  // For paginated calls, slice out exactly the requested window.
+  if (isPaginatedCall) {
+    const sliceStart = pageOffset! - (startPage - 1) * 100
+    allSubscribers = allSubscribers.slice(sliceStart, sliceStart + pageSize!)
   }
 
   // Filter to allowed lists

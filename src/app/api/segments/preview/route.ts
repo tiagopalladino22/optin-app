@@ -23,12 +23,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { rules, logic, returnAll, exportAll, instanceId } = (await request.json()) as {
+  const { rules, logic, returnAll, exportAll, instanceId, pageOffset, pageSize } = (await request.json()) as {
     rules: SegmentRule[]
     logic: 'and' | 'or'
     returnAll?: boolean
     exportAll?: boolean
     instanceId?: string
+    pageOffset?: number
+    pageSize?: number
   }
 
   if (!rules?.length) {
@@ -90,11 +92,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const limit = exportAll ? undefined : returnAll ? 200 : 10
+    const isPaginated = typeof pageOffset === 'number' && typeof pageSize === 'number'
+    const limit = isPaginated ? undefined : exportAll ? undefined : returnAll ? 200 : 10
     const { count, subscribers } = await getMatchingSubscribers(resolvedRules, logic, {
       allowedListIds,
       maxResults: limit,
       fetchFn,
+      pageOffset: isPaginated ? pageOffset : undefined,
+      pageSize: isPaginated ? pageSize : undefined,
     })
     console.log('[Preview] Count:', count, 'Sample size:', subscribers.length)
 

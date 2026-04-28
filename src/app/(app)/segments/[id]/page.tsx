@@ -51,6 +51,7 @@ export default function SegmentDetailPage() {
   const [subsCount, setSubsCount] = useState(0)
   const [deletingSub, setDeletingSub] = useState<number | null>(null)
   const [exporting, setExporting] = useState(false)
+  const [exportProgress, setExportProgress] = useState<{ current: number; total: number } | null>(null)
 
   // Performance stats
   const [perfLoading, setPerfLoading] = useState(false)
@@ -272,21 +273,37 @@ export default function SegmentDetailPage() {
   async function handleExport() {
     if (!segment) return
     setExporting(true)
+    setExportProgress({ current: 0, total: 0 })
     try {
-      // Fetch ALL subscribers (no limit) for export
-      const res = await fetch('/api/segments/preview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          rules: segment.rules,
-          logic: segment.logic,
-          exportAll: true,
-          instanceId: selectedInstanceId,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      const allSubs: SubscriberResult[] = data.sample || []
+      const PAGE_SIZE = 1000
+      const allSubs: SubscriberResult[] = []
+      let total = 0
+      let offset = 0
+
+      while (true) {
+        const res = await fetch('/api/segments/preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            rules: segment.rules,
+            logic: segment.logic,
+            instanceId: selectedInstanceId,
+            pageOffset: offset,
+            pageSize: PAGE_SIZE,
+          }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error)
+
+        const batch: SubscriberResult[] = data.sample || []
+        if (offset === 0) total = data.count || batch.length
+        allSubs.push(...batch)
+        setExportProgress({ current: allSubs.length, total })
+
+        if (batch.length < PAGE_SIZE) break
+        if (allSubs.length >= total) break
+        offset += PAGE_SIZE
+      }
 
       if (allSubs.length === 0) return
 
@@ -326,6 +343,7 @@ export default function SegmentDetailPage() {
       setError(err instanceof Error ? err.message : 'Export failed')
     } finally {
       setExporting(false)
+      setExportProgress(null)
     }
   }
 
@@ -380,6 +398,34 @@ export default function SegmentDetailPage() {
           </div>
         )}
       </div>
+
+      {exportProgress && (
+        <div className="bg-surface border border-border-custom rounded-xl p-4 space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-text-mid">
+              {exportProgress.total > 0
+                ? `Exporting ${exportProgress.current.toLocaleString()} of ${exportProgress.total.toLocaleString()} subscribers...`
+                : 'Preparing export...'}
+            </span>
+            {exportProgress.total > 0 && (
+              <span className="text-text-light tabular-nums">
+                {Math.round((exportProgress.current / exportProgress.total) * 100)}%
+              </span>
+            )}
+          </div>
+          <div className="h-2 bg-offwhite rounded-full overflow-hidden">
+            <div
+              className="h-full bg-accent transition-all duration-300"
+              style={{
+                width:
+                  exportProgress.total > 0
+                    ? `${Math.min(100, (exportProgress.current / exportProgress.total) * 100)}%`
+                    : '5%',
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
