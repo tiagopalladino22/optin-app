@@ -336,7 +336,7 @@ export default function ListDetailPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={handleExport}
-              disabled={exporting || subsTotal === 0}
+              disabled={exporting || list.subscriber_count === 0}
               className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-surface rounded-lg disabled:opacity-50"
             >
               {exporting ? 'Exporting...' : 'Export CSV'}
@@ -545,9 +545,9 @@ export default function ListDetailPage() {
             <div className="flex items-center justify-between px-5 py-4 border-b border-border-custom">
               <h2 className="font-display text-xl tracking-wide text-navy uppercase">
                 Subscribers
-                {subsTotal > 0 && (
+                {list.subscriber_count > 0 && (
                   <span className="text-text-light text-sm font-normal normal-case ml-2">
-                    ({subsTotal.toLocaleString()})
+                    ({list.subscriber_count.toLocaleString()})
                   </span>
                 )}
               </h2>
