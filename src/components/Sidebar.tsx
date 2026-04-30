@@ -34,7 +34,7 @@ export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
-  const { userRole, allowedSections } = useData()
+  const { userRole, allowedSections, instances } = useData()
   const { theme, toggleTheme } = useTheme()
 
   async function handleLogout() {
@@ -57,7 +57,9 @@ export default function Sidebar() {
         <img src="https://assets.cdn.filesafe.space/uV5Ao6zz1HK4AbvPQ1Of/media/6997cfc908245e32ebddf688.png" alt="OPTIN" width={120} height={40} className="object-contain" />
       </div>
 
-      {userRole === 'admin' && (
+      {/* Show selector for admins (any client w/ creds) and for client users
+          assigned to 2+ clients. */}
+      {(userRole === 'admin' || instances.length > 0) && (
         <div className="px-3 pb-3">
           <p className="px-2 mb-1 text-[10px] uppercase tracking-wider text-text-light font-medium">Instance</p>
           <div className="[&>select]:w-full">
