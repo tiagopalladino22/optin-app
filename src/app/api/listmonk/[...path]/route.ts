@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase-server'
+import { createServiceRoleClient } from '@/lib/supabase-server'
 import { listmonkFetch, createClientListmonkFetch } from '@/lib/listmonk'
 import { isDemoMode } from '@/lib/demo/config'
 import { tryDemoListmonkResponse } from '@/lib/demo/listmonk-router'
+import { getSession } from '@/lib/auth'
 
 // Map URL path segments to resource types for filtering
 const RESOURCE_TYPE_MAP: Record<string, string> = {
@@ -89,28 +90,6 @@ async function getClientResources(clientId: string, resourceType?: string) {
   return data || []
 }
 
-async function getSessionAndClient() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) return null
-
-  const serviceClient = await createServiceRoleClient()
-  const { data: profile } = await serviceClient
-    .from('user_profiles')
-    .select('role, client_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile) return null
-
-  return {
-    userId: user.id,
-    role: profile.role as string,
-    clientId: profile.client_id as string | null,
-  }
-}
-
 async function handleProxy(
   request: NextRequest,
   params: { path: string[] },
@@ -122,7 +101,9 @@ async function handleProxy(
     return tryDemoListmonkResponse(pathStr, method, url.searchParams)!
   }
 
-  const session = await getSessionAndClient()
+  // Use the shared session helper so this route honors the active-client cookie
+  // (multi-client users can switch via the navbar selector).
+  const session = await getSession()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
