@@ -1,6 +1,8 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
+import { setActiveClientCookie } from './active-client'
 
 export type UserRole = 'admin' | 'client'
 
@@ -98,6 +100,7 @@ async function fetchAllPages<T>(
 }
 
 export function DataProvider({ children }: { children: ReactNode }) {
+  const router = useRouter()
   const [lists, setLists] = useState<ListItem[]>([])
   const [campaigns, setCampaigns] = useState<CampaignItem[]>([])
   const [listsLoading, setListsLoading] = useState(true)
@@ -106,18 +109,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [allowedSections, setAllowedSections] = useState<string[] | null>(null)
   const [instances, setInstances] = useState<ClientInstance[]>([])
-  // Each session starts on the default instance. Selection is in-memory only —
-  // persisting it in localStorage caused stale selections (deleted clients,
-  // race with the instances fetch) where the selector showed a non-default
-  // instance but data came from default.
+  // Active client selection. For admins this is purely client-side state used
+  // to scope frontend fetches via ?instance=. For client users it ALSO writes
+  // a cookie so the server's session.clientId tracks the selection across all
+  // 42-ish API routes that scope by clientId.
   const [selectedInstanceId, setSelectedInstanceIdState] = useState<string | null>(null)
   const setSelectedInstanceId = useCallback((id: string | null) => {
     setSelectedInstanceIdState(id)
     if (typeof window !== 'undefined') {
-      // Clean up any persisted value from earlier versions so it can't resurface.
       localStorage.removeItem('selectedInstanceId')
     }
-  }, [])
+    // For client-role users we need the server to see the new active client
+    // for subsequent requests — set the cookie + ask Next to re-render server
+    // components with the new session. The /api/me refetch below also picks
+    // up the new allowed_sections so the sidebar updates.
+    if (userRole !== 'admin') {
+      setActiveClientCookie(id)
+      router.refresh()
+      // Refetch /api/me so allowedSections reflects the new active client.
+      fetch('/api/me')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.allowedSections) setAllowedSections(data.allowedSections)
+        })
+        .catch(() => {})
+    }
+  }, [userRole, router])
 
   const refreshLists = useCallback(async () => {
     setListsLoading(true)
@@ -149,7 +166,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [selectedInstanceId])
 
-  // Fetch user role on mount
+  // Fetch user identity on mount.
+  // For client-role users with multiple assigned clients, populate `instances`
+  // and seed the selector with the active (= primary or cookie) client so the
+  // navbar selector becomes available with no extra fetch.
   useEffect(() => {
     fetch('/api/me')
       .then((r) => r.json())
@@ -157,6 +177,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (data.role) setUserRole(data.role)
         if (data.email) setUserEmail(data.email)
         if (data.allowedSections) setAllowedSections(data.allowedSections)
+        if (data.role !== 'admin' && Array.isArray(data.availableClients) && data.availableClients.length > 1) {
+          setInstances(data.availableClients)
+          // Seed the local selector with whichever client the server says is active,
+          // so the dropdown shows the right value on first render.
+          if (data.clientId) setSelectedInstanceIdState(data.clientId)
+        }
       })
       .catch(() => {})
   }, [])

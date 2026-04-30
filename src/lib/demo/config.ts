@@ -9,6 +9,8 @@ export const DEMO_SESSION: SessionUser = {
   email: 'demo@tryoptin.com',
   role: 'client',
   clientId: 'demo-client',
+  primaryClientId: 'demo-client',
+  allowedClientIds: ['demo-client'],
 }
 
 export const DEMO_ALLOWED_SECTIONS = ['dashboard', 'lists', 'campaigns', 'sourcing', 'segments', 'stats']

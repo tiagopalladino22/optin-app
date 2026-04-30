@@ -17,13 +17,17 @@ export async function GET() {
       email: session.email,
       role: session.role,
       clientId: session.clientId,
+      primaryClientId: session.clientId,
+      availableClients: [],
       allowedSections: DEMO_ALLOWED_SECTIONS,
     })
   }
 
+  const supabase = await createServiceRoleClient()
+
+  // Pull the active client's allowed_sections (varies as the user switches).
   let allowedSections: string[] | null = null
   if (session.role === 'client' && session.clientId) {
-    const supabase = await createServiceRoleClient()
     const { data: client } = await supabase
       .from('clients')
       .select('allowed_sections')
@@ -32,11 +36,29 @@ export async function GET() {
     allowedSections = (client?.allowed_sections as string[] | null) ?? DEFAULT_SECTIONS
   }
 
+  // Pull the dropdown list of clients this user can switch between.
+  // Admins handle their own list via /api/settings/clients (existing flow), so
+  // we only populate availableClients for client-role users with assignments.
+  let availableClients: { id: string; name: string }[] = []
+  if (session.role !== 'admin' && session.allowedClientIds.length > 0) {
+    const { data: rows } = await supabase
+      .from('clients')
+      .select('id, name')
+      .in('id', session.allowedClientIds)
+      .order('name', { ascending: true })
+    availableClients = (rows ?? []).map((r) => ({
+      id: r.id as string,
+      name: r.name as string,
+    }))
+  }
+
   return NextResponse.json({
     id: session.id,
     email: session.email,
     role: session.role,
     clientId: session.clientId,
+    primaryClientId: session.primaryClientId,
+    availableClients,
     allowedSections,
   })
 }

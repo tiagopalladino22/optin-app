@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useData } from '@/lib/DataProvider'
 import { useTheme } from '@/lib/ThemeProvider'
 import InstanceSelector from './InstanceSelector'
+import { setActiveClientCookie } from '@/lib/active-client'
 
 type NavItem = {
   href: string
@@ -37,6 +38,7 @@ export default function Sidebar() {
   const { theme, toggleTheme } = useTheme()
 
   async function handleLogout() {
+    setActiveClientCookie(null)  // so next login starts on the user's primary
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()

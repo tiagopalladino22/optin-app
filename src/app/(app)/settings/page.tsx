@@ -33,6 +33,7 @@ interface User {
   role: string
   clientId: string | null
   clientName: string | null
+  assigned_clients?: { id: string; name: string; is_primary: boolean }[]
   createdAt: string
 }
 
@@ -694,6 +695,7 @@ function UsersTab() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [editingUserId, setEditingUserId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -701,8 +703,46 @@ function UsersTab() {
     email: '',
     password: '',
     role: 'client' as 'admin' | 'client',
-    clientId: '',
+    assignedClientIds: [] as string[],
+    primaryClientId: '',
   })
+
+  function resetForm() {
+    setForm({
+      email: '',
+      password: '',
+      role: 'client',
+      assignedClientIds: [],
+      primaryClientId: '',
+    })
+    setEditingUserId(null)
+  }
+
+  function startEdit(user: User) {
+    const assigned = user.assigned_clients ?? []
+    setEditingUserId(user.id)
+    setForm({
+      email: user.email,
+      password: '',
+      role: (user.role === 'admin' ? 'admin' : 'client') as 'admin' | 'client',
+      assignedClientIds: assigned.map((c) => c.id),
+      primaryClientId: assigned.find((c) => c.is_primary)?.id || assigned[0]?.id || '',
+    })
+    setShowForm(true)
+    setError(null)
+    setSuccess(null)
+  }
+
+  function toggleAssignedClient(clientId: string) {
+    setForm((f) => {
+      const next = f.assignedClientIds.includes(clientId)
+        ? f.assignedClientIds.filter((c) => c !== clientId)
+        : [...f.assignedClientIds, clientId]
+      // Keep primary valid: if removed or none yet, pick the first.
+      const primary = next.includes(f.primaryClientId) ? f.primaryClientId : (next[0] || '')
+      return { ...f, assignedClientIds: next, primaryClientId: primary }
+    })
+  }
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -733,20 +773,46 @@ function UsersTab() {
     setSaving(true)
     setError(null)
     setSuccess(null)
+
+    if (form.role === 'client' && form.assignedClientIds.length === 0) {
+      setError('Pick at least one client for client-role users')
+      setSaving(false)
+      return
+    }
+    if (form.role === 'client' && !form.primaryClientId) {
+      setError('Pick a primary client')
+      setSaving(false)
+      return
+    }
+
     try {
+      const isEdit = !!editingUserId
+      const payload: Record<string, unknown> = {
+        role: form.role,
+        assigned_client_ids: form.role === 'client' ? form.assignedClientIds : [],
+        primary_client_id: form.role === 'client' ? form.primaryClientId : null,
+      }
+      if (isEdit) {
+        payload.id = editingUserId
+      } else {
+        payload.email = form.email
+        payload.password = form.password
+      }
+
       const res = await fetch('/api/settings/users', {
-        method: 'POST',
+        method: isEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
-      setSuccess('User invited successfully')
-      setForm({ email: '', password: '', role: 'client', clientId: '' })
+
+      setSuccess(isEdit ? 'User updated' : 'User invited successfully')
+      resetForm()
       setShowForm(false)
       fetchData()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to create user')
+      setError(err instanceof Error ? err.message : 'Failed to save user')
     } finally {
       setSaving(false)
     }
@@ -771,7 +837,15 @@ function UsersTab() {
             Users
           </h2>
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => {
+              if (showForm) {
+                resetForm()
+                setShowForm(false)
+              } else {
+                resetForm()
+                setShowForm(true)
+              }
+            }}
             className="bg-accent text-white hover:bg-accent-bright rounded-lg font-medium px-4 py-2 text-sm"
           >
             {showForm ? 'Cancel' : 'Invite User'}
@@ -830,33 +904,57 @@ function UsersTab() {
                       </span>
                     </td>
                     <td className="px-5 py-3 text-sm text-text-mid">
-                      {user.clientName || '\u2014'}
+                      {user.role === 'admin' ? (
+                        '\u2014'
+                      ) : user.assigned_clients && user.assigned_clients.length > 0 ? (
+                        <span>
+                          {user.assigned_clients.map((c, i) => (
+                            <span key={c.id}>
+                              {i > 0 && ', '}
+                              {c.name}
+                              {c.is_primary && (
+                                <span className="ml-1 text-[10px] uppercase text-text-light">primary</span>
+                              )}
+                            </span>
+                          ))}
+                        </span>
+                      ) : (
+                        user.clientName || '\u2014'
+                      )}
                     </td>
                     <td className="px-5 py-3 text-sm text-text-light">
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-5 py-3 text-right">
-                      <button
-                        onClick={async () => {
-                          if (!confirm(`Delete user "${user.email}"?`)) return
-                          try {
-                            const res = await fetch('/api/settings/users', {
-                              method: 'DELETE',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ id: user.id }),
-                            })
-                            const json = await res.json()
-                            if (!res.ok) throw new Error(json.error)
-                            setSuccess('User deleted')
-                            fetchData()
-                          } catch (err: unknown) {
-                            setError(err instanceof Error ? err.message : 'Failed to delete')
-                          }
-                        }}
-                        className="text-xs text-red-500 hover:text-red-700 font-medium"
-                      >
-                        Delete
-                      </button>
+                      <div className="flex items-center justify-end gap-3">
+                        <button
+                          onClick={() => startEdit(user)}
+                          className="text-xs text-accent hover:text-accent-bright font-medium"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!confirm(`Delete user "${user.email}"?`)) return
+                            try {
+                              const res = await fetch('/api/settings/users', {
+                                method: 'DELETE',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ id: user.id }),
+                              })
+                              const json = await res.json()
+                              if (!res.ok) throw new Error(json.error)
+                              setSuccess('User deleted')
+                              fetchData()
+                            } catch (err: unknown) {
+                              setError(err instanceof Error ? err.message : 'Failed to delete')
+                            }
+                          }}
+                          className="text-xs text-red-500 hover:text-red-700 font-medium"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -869,7 +967,7 @@ function UsersTab() {
       {showForm && (
         <div className="bg-surface rounded-xl border border-border-custom p-5">
           <h2 className="font-display text-xl tracking-wide text-navy uppercase mb-4">
-            Invite User
+            {editingUserId ? 'Edit User' : 'Invite User'}
           </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -881,26 +979,29 @@ function UsersTab() {
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  required
-                  className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                  required={!editingUserId}
+                  disabled={!!editingUserId}
+                  className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent disabled:opacity-50 disabled:bg-offwhite"
                   placeholder="user@example.com"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-text-mid mb-1">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={form.password}
-                  onChange={(e) =>
-                    setForm({ ...form, password: e.target.value })
-                  }
-                  required
-                  className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-                  placeholder="Min 6 characters"
-                />
-              </div>
+              {!editingUserId && (
+                <div>
+                  <label className="block text-sm font-medium text-text-mid mb-1">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    value={form.password}
+                    onChange={(e) =>
+                      setForm({ ...form, password: e.target.value })
+                    }
+                    required
+                    className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                    placeholder="Min 6 characters"
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-text-mid mb-1">
                   Role
@@ -911,7 +1012,9 @@ function UsersTab() {
                     setForm({
                       ...form,
                       role: e.target.value as 'admin' | 'client',
-                      clientId: e.target.value === 'admin' ? '' : form.clientId,
+                      // Clear assignments if becoming admin
+                      assignedClientIds: e.target.value === 'admin' ? [] : form.assignedClientIds,
+                      primaryClientId: e.target.value === 'admin' ? '' : form.primaryClientId,
                     })
                   }
                   className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
@@ -920,42 +1023,71 @@ function UsersTab() {
                   <option value="admin">Admin</option>
                 </select>
               </div>
+            </div>
+
+            {form.role === 'client' && (
               <div>
                 <label className="block text-sm font-medium text-text-mid mb-1">
-                  Client
+                  Assigned clients
                 </label>
-                <select
-                  value={form.clientId}
-                  onChange={(e) =>
-                    setForm({ ...form, clientId: e.target.value })
-                  }
-                  disabled={form.role === 'admin'}
-                  className="w-full px-3 py-2 border border-border-custom rounded-lg text-navy focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent disabled:opacity-50 disabled:bg-offwhite"
-                >
-                  <option value="">
-                    {form.role === 'admin'
-                      ? 'N/A for admins'
-                      : 'Select a client'}
-                  </option>
-                  {clients.map((client) => (
-                    <option key={client.id} value={client.id}>
-                      {client.name}
-                    </option>
-                  ))}
-                </select>
+                <p className="text-xs text-text-light mb-2">
+                  Tick every client this user can switch between in the navbar. Mark exactly one as Primary — that&rsquo;s where they land at login.
+                </p>
+                <div className="border border-border-custom rounded-lg divide-y divide-border-custom max-h-72 overflow-y-auto">
+                  {clients.length === 0 ? (
+                    <div className="px-3 py-3 text-sm text-text-light">No clients available</div>
+                  ) : (
+                    clients.map((client) => {
+                      const isAssigned = form.assignedClientIds.includes(client.id)
+                      const isPrimary = form.primaryClientId === client.id
+                      return (
+                        <label
+                          key={client.id}
+                          className="flex items-center gap-3 px-3 py-2 hover:bg-offwhite cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isAssigned}
+                            onChange={() => toggleAssignedClient(client.id)}
+                            className="h-4 w-4"
+                          />
+                          <span className="flex-1 text-sm text-navy">{client.name}</span>
+                          {isAssigned && (
+                            <label className="flex items-center gap-1.5 text-xs text-text-mid">
+                              <input
+                                type="radio"
+                                name="primary_client"
+                                checked={isPrimary}
+                                onChange={() =>
+                                  setForm((f) => ({ ...f, primaryClientId: client.id }))
+                                }
+                                className="h-3 w-3"
+                              />
+                              Primary
+                            </label>
+                          )}
+                        </label>
+                      )
+                    })
+                  )}
+                </div>
               </div>
-            </div>
+            )}
+
             <div className="flex gap-3">
               <button
                 type="submit"
                 disabled={saving}
                 className="bg-accent text-white hover:bg-accent-bright rounded-lg font-medium px-4 py-2 text-sm disabled:opacity-50"
               >
-                {saving ? 'Creating...' : 'Create User'}
+                {saving ? 'Saving...' : editingUserId ? 'Save Changes' : 'Create User'}
               </button>
               <button
                 type="button"
-                onClick={() => setShowForm(false)}
+                onClick={() => {
+                  resetForm()
+                  setShowForm(false)
+                }}
                 className="border border-border-custom text-text-mid hover:bg-surface rounded-lg px-4 py-2 text-sm"
               >
                 Cancel
