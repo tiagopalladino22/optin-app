@@ -110,7 +110,7 @@ export default function SegmentDetailPage() {
     } finally {
       setSubsLoading(false)
     }
-  }, [segment])
+  }, [segment, selectedInstanceId])
 
   useEffect(() => {
     if (segment && !editing) {

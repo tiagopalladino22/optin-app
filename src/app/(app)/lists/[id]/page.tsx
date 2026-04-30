@@ -5,7 +5,6 @@ import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import CsvImport from '@/components/lists/CsvImport'
 import Pagination from '@/components/ui/Pagination'
-import { useData } from '@/lib/DataProvider'
 
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
 const SUBS_PER_PAGE = 50
@@ -33,7 +32,6 @@ interface SubscriberResult {
 export default function ListDetailPage() {
   const params = useParams()
   const searchParams = useSearchParams()
-  const { selectedInstanceId } = useData()
   const [list, setList] = useState<ListDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
