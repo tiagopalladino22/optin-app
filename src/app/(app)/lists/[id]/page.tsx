@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import CsvImport from '@/components/lists/CsvImport'
 import Pagination from '@/components/ui/Pagination'
+import { useData } from '@/lib/DataProvider'
 
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
 const SUBS_PER_PAGE = 50
@@ -32,6 +33,7 @@ interface SubscriberResult {
 export default function ListDetailPage() {
   const params = useParams()
   const searchParams = useSearchParams()
+  const { lists: overviewLists } = useData()
   const [list, setList] = useState<ListDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -319,6 +321,15 @@ export default function ListDetailPage() {
     return <p className="text-text-mid">List not found.</p>
   }
 
+  // Prefer the count from the overview (cached subscriber_count via /api/lists)
+  // so the number on this page matches what the user just saw on /lists.
+  // The single-list endpoint /api/lists/{id} sometimes returns a different value.
+  const overviewMatch = overviewLists.find((l) => l.id === list.id)
+  const displayedSubCount =
+    typeof overviewMatch?.subscriber_count === 'number'
+      ? overviewMatch.subscriber_count
+      : list.subscriber_count
+
   const totalPages = Math.max(1, Math.ceil(subsTotal / SUBS_PER_PAGE))
 
   return (
@@ -336,7 +347,7 @@ export default function ListDetailPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={handleExport}
-              disabled={exporting || list.subscriber_count === 0}
+              disabled={exporting || displayedSubCount === 0}
               className="px-4 py-2 text-sm border border-border-custom text-text-mid hover:bg-surface rounded-lg disabled:opacity-50"
             >
               {exporting ? 'Exporting...' : 'Export CSV'}
@@ -481,7 +492,7 @@ export default function ListDetailPage() {
             <div className="bg-surface rounded-xl border border-border-custom p-5">
               <p className="text-xs text-text-light uppercase tracking-wider mb-1">Subscribers</p>
               <p className="font-display text-3xl text-navy">
-                {list.subscriber_count.toLocaleString()}
+                {displayedSubCount.toLocaleString()}
               </p>
             </div>
             <div className="bg-surface rounded-xl border border-border-custom p-5">
@@ -545,9 +556,9 @@ export default function ListDetailPage() {
             <div className="flex items-center justify-between px-5 py-4 border-b border-border-custom">
               <h2 className="font-display text-xl tracking-wide text-navy uppercase">
                 Subscribers
-                {list.subscriber_count > 0 && (
+                {displayedSubCount > 0 && (
                   <span className="text-text-light text-sm font-normal normal-case ml-2">
-                    ({list.subscriber_count.toLocaleString()})
+                    ({displayedSubCount.toLocaleString()})
                   </span>
                 )}
               </h2>
