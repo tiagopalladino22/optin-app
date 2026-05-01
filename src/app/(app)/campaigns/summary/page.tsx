@@ -31,12 +31,20 @@ export default function CampaignSummaryPage() {
   )
 }
 
+interface LinkRow {
+  url: string
+  count: number
+  campaigns: number
+}
+
 function SummaryContent() {
   const searchParams = useSearchParams()
   const { userRole } = useData()
   const [campaigns, setCampaigns] = useState<CampaignData[]>([])
   const [loading, setLoading] = useState(true)
   const [showPushModal, setShowPushModal] = useState(false)
+  const [topLinks, setTopLinks] = useState<LinkRow[]>([])
+  const [linksLoading, setLinksLoading] = useState(false)
 
   const ids = useMemo(() => {
     const param = searchParams.get('ids')
@@ -87,6 +95,53 @@ function SummaryContent() {
         }))
 
         setCampaigns(merged)
+
+        // Fetch link analytics for every selected campaign in parallel and merge
+        // by URL — same URL across campaigns sums into one row.
+        setLinksLoading(true)
+        try {
+          const to = new Date().toISOString()
+          const linkResults = await Promise.all(
+            details.map(async (c: CampaignData) => {
+              const startDate = c.started_at || c.created_at || '2020-01-01T00:00:00Z'
+              const from = new Date(startDate).toISOString()
+              try {
+                const res = await fetch(
+                  `/api/listmonk/campaigns/analytics/links?id=${c.id}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${instanceParam}`
+                )
+                if (!res.ok) return [] as { url: string; count: number }[]
+                const json = await res.json()
+                return (json.data || []) as { url: string; count: number }[]
+              } catch {
+                return [] as { url: string; count: number }[]
+              }
+            })
+          )
+
+          const linkMap = new Map<string, { count: number; campaigns: number }>()
+          linkResults.forEach((rows) => {
+            const seenInThisCampaign = new Set<string>()
+            for (const r of rows) {
+              if (!r.url) continue
+              const prev = linkMap.get(r.url) || { count: 0, campaigns: 0 }
+              prev.count += r.count
+              if (!seenInThisCampaign.has(r.url)) {
+                prev.campaigns += 1
+                seenInThisCampaign.add(r.url)
+              }
+              linkMap.set(r.url, prev)
+            }
+          })
+
+          const aggregated: LinkRow[] = Array.from(linkMap.entries())
+            .map(([url, v]) => ({ url, count: v.count, campaigns: v.campaigns }))
+            .sort((a, b) => b.count - a.count)
+          setTopLinks(aggregated)
+        } catch {
+          // Link analytics are optional
+        } finally {
+          setLinksLoading(false)
+        }
       } catch (err) {
         console.error('Failed to fetch campaigns:', err)
       } finally {
@@ -307,6 +362,66 @@ function SummaryContent() {
           </table>
         </div>
       </div>
+
+      {/* Aggregated click breakdown across selected campaigns */}
+      {(linksLoading || topLinks.length > 0) && (
+        <div className="bg-surface rounded-xl border border-border-custom overflow-hidden">
+          <div className="px-5 py-4 border-b border-border-custom flex items-center justify-between">
+            <h2 className="text-sm font-medium text-text-mid uppercase tracking-wider">
+              Most Clicked Links
+              {!linksLoading && topLinks.length > 0 && (
+                <span className="text-text-light font-normal normal-case ml-2">
+                  ({topLinks.length} unique URL{topLinks.length !== 1 ? 's' : ''} across {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''})
+                </span>
+              )}
+            </h2>
+          </div>
+          {linksLoading ? (
+            <div className="p-5 space-y-3">
+              <div className="skeleton h-4 w-full" />
+              <div className="skeleton h-4 w-3/4" />
+              <div className="skeleton h-4 w-1/2" />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-offwhite text-text-light uppercase text-xs tracking-wider border-b border-border-custom">
+                    <th className="text-left px-4 py-3 font-medium w-8">#</th>
+                    <th className="text-left px-4 py-3 font-medium">Link</th>
+                    <th className="text-right px-4 py-3 font-medium">Campaigns</th>
+                    <th className="text-right px-4 py-3 font-medium">Total Clicks</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topLinks.map((link, i) => (
+                    <tr key={i} className="border-b border-border-custom last:border-0 hover:bg-offwhite/50">
+                      <td className="px-4 py-3 text-text-light font-mono text-xs">{i + 1}</td>
+                      <td className="px-4 py-3 min-w-0 max-w-md">
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-accent hover:text-accent-bright truncate block"
+                          title={link.url}
+                        >
+                          {link.url}
+                        </a>
+                      </td>
+                      <td className="px-4 py-3 text-right text-text-mid tabular-nums">
+                        {link.campaigns.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-right font-medium text-navy tabular-nums">
+                        {link.count.toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {showPushModal && (
         <PushKPIsModal
