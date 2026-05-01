@@ -104,7 +104,7 @@ export default function ListDetailPage() {
     setError(null)
     try {
       const res = await fetch(
-        `/api/listmonk/subscribers?list_id=${list.id}&subscription_status=confirmed&page=${subsPage}&per_page=${SUBS_PER_PAGE}${instanceQuery}`
+        `/api/listmonk/subscribers?list_id=${list.id}&page=${subsPage}&per_page=${SUBS_PER_PAGE}${instanceQuery}`
       )
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to load subscribers')
@@ -253,7 +253,7 @@ export default function ListDetailPage() {
 
       while (true) {
         const res = await fetch(
-          `/api/listmonk/subscribers?list_id=${list.id}&subscription_status=confirmed&page=${page}&per_page=${PAGE_SIZE}${instanceQuery}`
+          `/api/listmonk/subscribers?list_id=${list.id}&page=${page}&per_page=${PAGE_SIZE}${instanceQuery}`
         )
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || 'Export failed')
